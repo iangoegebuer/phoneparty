@@ -7,8 +7,21 @@
   <body>
     <p id="errormsg"></p>
     <p>Please enter a room code:</p>
-    <input type="text" />
-    <input type="button" value="submit" onclick="window.location.href = 'room.html?code=poop'"/>
+    <input type="text" id="roomcodetext"/>
+    <p>Your name:</p>
+    <input type="text" id="nametext"/>
+    <input type="button" value="submit" onclick="gotoRoom()"/>
     <script src="/jquery-1.11.1.js"></script>
+    <script>
+    function gotoRoom() {
+      var code = $("#roomcodetext").val();
+      var name = $("#nametext").val();
+      if (code.length > 0 && name.length > 0) {
+        window.location.href = 'room.html?code=' + code + "&name=" + name;
+      } else {
+        $("#errormsg").text("Please enter a name and a room code.");
+      }
+    }
+    </script>
   </body>
 </html>
