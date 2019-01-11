@@ -17,7 +17,7 @@
       var code = $("#roomcodetext").val();
       var name = $("#nametext").val();
       if (code.length > 0 && name.length > 0) {
-        window.location.href = 'room.html?code=' + code + "&name=" + name;
+        window.location.href = code + '?code=' + code + "&name=" + name;
       } else {
         $("#errormsg").text("Please enter a name and a room code.");
       }
