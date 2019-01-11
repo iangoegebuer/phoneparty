@@ -11,8 +11,10 @@
     </form>
     <script src="site/socket.io-1.3.7.js"></script>
     <script src="site/jquery-1.11.1.js"></script>
+    <script src="site/js/util.js"></script>
     <script>
-      var socket = io();
+      var urlVars = getURLVars();
+      var socket = io( { query: "username="+urlVars['name']+"&room="+urlVars['code'] });
       $('form').submit(function(){
         socket.emit('chat message with ack', $('#m').val(), function(data){
           $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
