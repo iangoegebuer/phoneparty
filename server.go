@@ -3,15 +3,16 @@ package main
 import (
 	"log"
 	"net/http"
+	"strings"
 
-	"github.com/googollee/go-socket.io"
+	socketio "github.com/googollee/go-socket.io"
 )
 
 type Room struct {
-  Name string
-  EntryCode string
-  //Owner int
-  //Members []int
+	Name      string
+	EntryCode string
+	//Owner int
+	//Members []int
 }
 
 var rooms []Room
@@ -37,8 +38,26 @@ func main() {
 	})
 
 	http.Handle("/socket.io/", server)
-	http.Handle("/", http.FileServer(http.Dir("./site")))
+	http.Handle("/site/", http.StripPrefix("/site/", http.FileServer(http.Dir("site"))))
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "site/favicon.ico")
+	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		url := r.URL.String()
+		if len(url) > 0 {
+			url = url[1:]
+		}
+		if strings.Contains(url, "/") {
+			http.ServeFile(w, r, "./site/error.html")
+		} else if len(url) == 0 {
+			// serve index
+			http.ServeFile(w, r, "./site/index.html")
+		} else {
+			// serve room
+			log.Println("url for room is ", url)
+			http.ServeFile(w, r, "./site/room.html")
+		}
+	})
 	log.Println("Serving at localhost:5000...")
 	log.Fatal(http.ListenAndServe(":5000", nil))
 }
-
