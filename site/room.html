@@ -14,7 +14,8 @@
     <script src="site/js/util.js"></script>
     <script>
       var urlVars = getURLVars();
-      var socket = io( { query: "username="+urlVars['name']+"&room="+urlVars['code'] });
+      var room = location.pathname.replace('/','');
+      var socket = io( { query: "username="+urlVars['name']+"&room="+room });
       $('form').submit(function(){
         socket.emit('chat message with ack', $('#m').val(), function(data){
           $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
