@@ -28,9 +28,11 @@ func main() {
 		var postValues = so.Request().Form
 		log.Println("Room code: ", "chat_"+postValues.Get("room"))
 		so.Join("chat_" + postValues.Get("room"))
-		so.On("chat message", func(msg string) {
-			log.Println("emit:", so.Emit("chat message", msg))
-			server.BroadcastTo(so.Rooms()[0], "chat message", msg)
+		so.On("to everyone", func(msg string) {
+			server.BroadcastTo(so.Rooms()[0], "to everyone", msg)
+		})
+		so.On("to host", func(msg string) {
+			// TODO define one socket as the host
 		})
 		so.On("disconnection", func() {
 			log.Println("on disconnect")
