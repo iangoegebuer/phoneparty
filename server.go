@@ -46,7 +46,7 @@ func main() {
 		http.ServeFile(w, r, "site/favicon.ico")
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		url := r.URL.String()
+		url := strings.Split(r.URL.String(), "?")[0]
 		if len(url) > 0 {
 			url = url[1:]
 		}

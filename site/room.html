@@ -5,6 +5,7 @@
     <link href="site/css/site.css" rel="stylesheet" type="text/css">
   </head>
   <body>
+    <h1 id="nameheader"></h1>
     <ul id="messages"></ul>
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
@@ -13,13 +14,20 @@
     <script src="site/jquery-1.11.1.js"></script>
     <script src="site/js/util.js"></script>
     <script>
-      var urlVars = getURLVars();
+      var name = sessionStorage.getItem("name");
+      console.log(name);
+      if (name === "null" || name.length === 0) {
+        console.log("no name");
+        window.location.href = "/?error=name";
+      }
+      $('#nameheader').text('Name: ' + name);
       var room = location.pathname.replace('/','');
-      var socket = io( { query: "username="+urlVars['name']+"&room="+room });
+      sessionStorage.setItem("room", room);
+      var socket = io( { query: "username="+name+"&room="+room });
       $('form').submit(function(){
-        socket.emit('chat message with ack', $('#m').val(), function(data){
-          $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
-        });
+        //socket.emit('chat message with ack', $('#m').val(), function(data){
+        //  $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
+        //});
         socket.emit('chat message', $('#m').val());
         $('#m').val('');
         return false;
