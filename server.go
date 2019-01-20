@@ -14,8 +14,14 @@ type Room struct {
 	name      string
 	entryCode string
 	owner     string
-	members   []int
+	members   []Player
 	expires   time.Time // todo implement
+}
+
+type Player struct {
+	name   string
+	id     string
+	socket socketio.Socket
 }
 
 var rooms []Room
@@ -39,11 +45,18 @@ func main() {
 			log.Println("Assigning player ID ", playerID, " to ", postValues.Get("name"))
 			so.Emit("set playerID", playerID)
 		}
-		so.On("to everyone", func(msg string) {
-			server.BroadcastTo(so.Rooms()[0], "to everyone", msg)
+		// from is a player ID
+		so.On("to everyone", func(data string) {
+			server.BroadcastTo(so.Rooms()[0], "to everyone", data)
 		})
-		so.On("to host", func(msg string) {
+		so.On("to host", func(data string) {
 			// TODO define one socket as the host
+		})
+		so.On("to player", func(to string, data string) {
+
+		})
+		so.On("player list", func() {
+			// TODO send down the list of players
 		})
 		so.On("disconnection", func() {
 			log.Println("on disconnect")
