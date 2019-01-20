@@ -4,15 +4,18 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
+	uuid "github.com/google/uuid"
 	socketio "github.com/googollee/go-socket.io"
 )
 
 type Room struct {
-	Name      string
-	EntryCode string
-	//Owner int
-	//Members []int
+	name      string
+	entryCode string
+	owner     string
+	members   []int
+	expires   time.Time // todo implement
 }
 
 var rooms []Room
@@ -27,7 +30,15 @@ func main() {
 		so.Request().ParseForm()
 		var postValues = so.Request().Form
 		log.Println("Room code: ", "chat_"+postValues.Get("room"))
+		log.Println("Player ID: ", postValues.Get("playerID"))
 		so.Join("chat_" + postValues.Get("room"))
+		var playerID = postValues.Get("playerID")
+		if "" == playerID {
+			var id, _ = uuid.NewRandom()
+			playerID = id.String()
+			log.Println("Assigning player ID ", playerID, " to ", postValues.Get("name"))
+			so.Emit("set playerID", playerID)
+		}
 		so.On("to everyone", func(msg string) {
 			server.BroadcastTo(so.Rooms()[0], "to everyone", msg)
 		})

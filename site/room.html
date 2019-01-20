@@ -1,7 +1,10 @@
 <!doctype html>
 <html>
   <head>
-    <title>Socket.IO chat</title>
+    <title>Phone Party</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link href="site/css/site.css" rel="stylesheet" type="text/css">
   </head>
   <body>
@@ -16,14 +19,18 @@
     <script>
       var name = sessionStorage.getItem("name");
       console.log(name);
-      if (name === "null" || name.length === 0) {
+      if (!name || name === "null" || name.length === 0) {
         console.log("no name");
         window.location.href = "/?error=name";
       }
-      $('#nameheader').text('Name: ' + name);
+      var playerID = sessionStorage.getItem("playerID");
+      if (!playerID || playerID === "null" || playerID.length === 0) {
+        playerID = "";
+      }
+      updateNameHeader();
       var room = location.pathname.replace('/','');
       sessionStorage.setItem("room", room);
-      var socket = io( { query: "username="+name+"&room="+room });
+      var socket = io( { query: "username="+name+"&room="+room+"&playerID="+playerID });
       $('form').submit(function(){
         //socket.emit('chat message with ack', $('#m').val(), function(data){
         //  $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
@@ -32,9 +39,18 @@
         $('#m').val('');
         return false;
       });
+      socket.on('set playerID', function(id) {
+        sessionStorage.setItem("playerID", id);
+        playerID = id;
+        updateNameHeader();
+      });
       socket.on('to everyone', function(msg){
         $('#messages').append($('<li>').text(msg));
       });
+
+      function updateNameHeader() {
+        $('#nameheader').text('Name: ' + name + ' (playerID: ' + playerID + ')');
+      }
     </script>
   </body>
 </html>
