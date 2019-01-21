@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -11,11 +12,9 @@ import (
 )
 
 type Room struct {
-	name      string
 	entryCode string
-	owner     string
-	members   []Player
-	expires   time.Time // todo implement
+	members   []Player  // the first player is always the owner
+	expires   time.Time // todo implement room expiration
 }
 
 type Player struct {
@@ -71,6 +70,21 @@ func main() {
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "site/favicon.ico")
 	})
+	http.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
+		// TODO create the room, and then redirect to it
+		const letters = "abcdefghijklmnopqrstuvwxyz"
+
+		randStr := ""
+		for i := 0; i < 6; i++ {
+			idx := rand.Intn(len(letters))
+			randStr += letters[idx : idx+1]
+		}
+
+		room := Room{entryCode: randStr, expires: time.Now()}
+		rooms = append(rooms, room)
+		log.Println("Created room with code " + randStr)
+		http.Redirect(w, r, "/"+randStr, 303)
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := strings.Split(r.URL.String(), "?")[0]
 		if len(url) > 0 {
@@ -84,9 +98,23 @@ func main() {
 		} else {
 			// serve room
 			log.Println("url for room is ", url)
-			http.ServeFile(w, r, "./site/room.html")
+			found, _ := findRoom(url)
+			if !found {
+				http.Redirect(w, r, "/?error=code", 400)
+			} else {
+				http.ServeFile(w, r, "./site/room.html")
+			}
 		}
 	})
 	log.Println("Serving at localhost:8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func findRoom(code string) (bool, Room) {
+	for _, room := range rooms {
+		if room.entryCode == code {
+			return true, room
+		}
+	}
+	return false, Room{}
 }

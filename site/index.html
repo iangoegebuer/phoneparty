@@ -10,7 +10,8 @@
     <input type="text" id="roomcodetext"/>
     <p>Your name:</p>
     <input type="text" id="nametext"/>
-    <input type="button" value="submit" onclick="gotoRoom()"/>
+    <br><br>
+    <input type="button" value="Join Room" onclick="gotoRoom()"/> or <input type="button" value="Create Room" onclick="createRoom()"/>
     <script src="site/jquery-1.11.1.js"></script>
     <script>
     function gotoRoom() {
@@ -22,6 +23,15 @@
         window.location.href = code;
       } else {
         $("#errormsg").text("Please enter a name and a room code.");
+      }
+    }
+    function createRoom() {
+      var name = $("#nametext").val();
+      if (name.length > 0) {
+        sessionStorage.setItem("name", name);
+        window.location.href = "/create";
+      } else {
+        $("#errormsg").text("Please enter a name.");
       }
     }
     </script>
