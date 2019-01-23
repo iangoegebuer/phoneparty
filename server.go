@@ -11,12 +11,14 @@ import (
 	socketio "github.com/googollee/go-socket.io"
 )
 
+// Room : Data structure for rooms
 type Room struct {
 	entryCode string
 	members   []Player  // the first player is always the owner
 	expires   time.Time // todo implement room expiration
 }
 
+// Player : Data structure for players
 type Player struct {
 	name   string
 	id     string
@@ -34,16 +36,32 @@ func main() {
 		log.Println("on connection")
 		so.Request().ParseForm()
 		var postValues = so.Request().Form
-		log.Println("Room code: ", "chat_"+postValues.Get("room"))
-		log.Println("Player ID: ", postValues.Get("playerID"))
-		so.Join("chat_" + postValues.Get("room"))
+		var roomCode = postValues.Get("room")
+		var name = postValues.Get("name")
+		log.Println("Room code: ", "chat_"+roomCode)
+		so.Join("chat_" + roomCode)
 		var playerID = postValues.Get("playerID")
+		log.Println("Player ID: ", playerID)
 		if "" == playerID {
 			var id, _ = uuid.NewRandom()
 			playerID = id.String()
-			log.Println("Assigning player ID ", playerID, " to ", postValues.Get("name"))
+			log.Println("Assigning player ID ", playerID, " to ", name)
 			so.Emit("set playerID", playerID)
 		}
+		found, room := findRoom(roomCode)
+		if !found {
+			log.Println("Couldn't find room code ", roomCode)
+		}
+		found, playerInRoom := findPlayer(room, playerID)
+		if !found {
+			playerInRoom = Player{name: name, id: playerID, socket: so}
+		} else {
+			// rename and use the new socket i guess?
+			playerInRoom.name = name
+			playerInRoom.socket = so
+		}
+		room.members = append(room.members, playerInRoom)
+
 		// from is a player ID
 		so.On("to everyone", func(data string) {
 			server.BroadcastTo(so.Rooms()[0], "to everyone", data)
@@ -117,4 +135,13 @@ func findRoom(code string) (bool, Room) {
 		}
 	}
 	return false, Room{}
+}
+
+func findPlayer(room Room, playerID string) (bool, Player) {
+	for _, player := range room.members {
+		if player.id == playerID {
+			return true, player
+		}
+	}
+	return false, Player{}
 }

@@ -17,18 +17,18 @@
     <script src="site/jquery-1.11.1.js"></script>
     <script src="site/js/util.js"></script>
     <script>
+      var room = location.pathname.replace('/','');
       var name = sessionStorage.getItem("name");
       console.log(name);
       if (!name || name === "null" || name.length === 0) {
         console.log("no name");
-        window.location.href = "/?error=name";
+        window.location.href = "/?error=name&room=" + room;
       }
       var playerID = sessionStorage.getItem("playerID");
       if (!playerID || playerID === "null" || playerID.length === 0) {
         playerID = "";
       }
       updateNameHeader();
-      var room = location.pathname.replace('/','');
       sessionStorage.setItem("room", room);
       var socket = io( { query: "username="+name+"&room="+room+"&playerID="+playerID });
       $('form').submit(function(){
