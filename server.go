@@ -18,6 +18,26 @@ type Room struct {
 	expires   time.Time // todo implement room expiration
 }
 
+func (room Room) findPlayer(playerID string) (bool, Player) {
+	for _, player := range room.members {
+		if player.id == playerID {
+			return true, player
+		}
+	}
+	return false, Player{}
+}
+
+func (room Room) listPlayers() string {
+	result := ""
+	for i, player := range room.members {
+		result += player.id
+		if i < len(room.members)-1 {
+			result += ","
+		}
+	}
+	return result
+}
+
 // Player : Data structure for players
 type Player struct {
 	name   string
@@ -26,6 +46,15 @@ type Player struct {
 }
 
 var rooms []Room
+
+func findRoom(code string) (bool, Room) {
+	for _, room := range rooms {
+		if room.entryCode == code {
+			return true, room
+		}
+	}
+	return false, Room{}
+}
 
 func main() {
 	server, err := socketio.NewServer(nil)
@@ -52,7 +81,7 @@ func main() {
 		if !found {
 			log.Println("Couldn't find room code ", roomCode)
 		}
-		found, playerInRoom := findPlayer(room, playerID)
+		found, playerInRoom := room.findPlayer(playerID)
 		if !found {
 			playerInRoom = Player{name: name, id: playerID, socket: so}
 		} else {
@@ -64,16 +93,22 @@ func main() {
 
 		// from is a player ID
 		so.On("to everyone", func(data string) {
-			server.BroadcastTo(so.Rooms()[0], "to everyone", data)
+			server.BroadcastTo("chat_"+roomCode, "to everyone", data)
 		})
 		so.On("to host", func(data string) {
-			// TODO define one socket as the host
+			if len(room.members) > 0 {
+				hostSo := room.members[0].socket
+				hostSo.Emit("to host", data)
+			}
 		})
 		so.On("to player", func(to string, data string) {
-
+			found, player := room.findPlayer(to)
+			if found {
+				player.socket.Emit("to player", data)
+			}
 		})
 		so.On("player list", func() {
-			// TODO send down the list of players
+			so.Emit("player list", room.listPlayers())
 		})
 		so.On("disconnection", func() {
 			log.Println("on disconnect")
@@ -98,7 +133,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := Room{entryCode: randStr, expires: time.Now()}
+		room := Room{entryCode: randStr, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)
@@ -126,22 +161,36 @@ func main() {
 	})
 	log.Println("Serving at localhost:8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	startPeriodic()
 }
 
-func findRoom(code string) (bool, Room) {
-	for _, room := range rooms {
-		if room.entryCode == code {
-			return true, room
+func startPeriodic() {
+	// I barely understand this but it runs periodic every 30 seconds
+	ticker := time.NewTicker(30 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				periodic()
+				break
+			case <-quit:
+				ticker.Stop()
+				return
+			}
 		}
-	}
-	return false, Room{}
+	}()
 }
 
-func findPlayer(room Room, playerID string) (bool, Player) {
-	for _, player := range room.members {
-		if player.id == playerID {
-			return true, player
+func periodic() {
+	// scan through rooms and remove expired ones
+	now := time.Now()
+	for i := 0; i < len(rooms); i++ {
+		if rooms[i].expires.Before(now) {
+			log.Println("Removing expired room " + rooms[i].entryCode)
+			rooms = append(rooms[:i], rooms[i+1:]...)
+			i--
 		}
 	}
-	return false, Player{}
 }
