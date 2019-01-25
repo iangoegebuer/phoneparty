@@ -13,27 +13,40 @@
     <br><br>
     <input type="button" value="Join Room" onclick="gotoRoom()"/> or <input type="button" value="Create Room" onclick="createRoom()"/>
     <script src="site/jquery-1.11.1.js"></script>
+    <script src="site/js/util.js"></script>
     <script>
-    function gotoRoom() {
-      var code = $("#roomcodetext").val();
-      var name = $("#nametext").val();
-      if (code.length > 0 && name.length > 0) {
-        sessionStorage.setItem("code", code);
-        sessionStorage.setItem("name", name);
-        window.location.href = code;
-      } else {
-        $("#errormsg").text("Please enter a name and a room code.");
+      var urlvars = getURLVars();
+      var errorType = urlvars.error || null;
+      if (errorType === "code") {
+        $('#errormsg').text('Unable to join the room.');
+      } else if (errorType === "name") {
+        $('#errormsg').text('Please enter a name.');
       }
-    }
-    function createRoom() {
-      var name = $("#nametext").val();
-      if (name.length > 0) {
-        sessionStorage.setItem("name", name);
-        window.location.href = "/create";
-      } else {
-        $("#errormsg").text("Please enter a name.");
+
+      if (urlvars.room) {
+        var code = $("#roomcodetext").val(urlvars.room);
       }
-    }
+
+      function gotoRoom() {
+        var code = $("#roomcodetext").val();
+        var name = $("#nametext").val();
+        if (code.length > 0 && name.length > 0) {
+          localStorage.setItem("code", code);
+          localStorage.setItem("name", name);
+          window.location.href = code;
+        } else {
+          $("#errormsg").text("Please enter a name and a room code.");
+        }
+      }
+      function createRoom() {
+        var name = $("#nametext").val();
+        if (name.length > 0) {
+          localStorage.setItem("name", name);
+          window.location.href = "/create";
+        } else {
+          $("#errormsg").text("Please enter a name.");
+        }
+      }
     </script>
   </body>
 </html>

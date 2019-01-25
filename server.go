@@ -57,6 +57,7 @@ func findRoom(code string) (bool, Room) {
 }
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal(err)

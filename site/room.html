@@ -18,18 +18,18 @@
     <script src="site/js/util.js"></script>
     <script>
       var room = location.pathname.replace('/','');
-      var name = sessionStorage.getItem("name");
+      var name = localStorage.getItem("name");
       console.log(name);
       if (!name || name === "null" || name.length === 0) {
         console.log("no name");
         window.location.href = "/?error=name&room=" + room;
       }
-      var playerID = sessionStorage.getItem("playerID");
+      var playerID = localStorage.getItem("playerID");
       if (!playerID || playerID === "null" || playerID.length === 0) {
         playerID = "";
       }
       updateNameHeader();
-      sessionStorage.setItem("room", room);
+      localStorage.setItem("room", room);
       var socket = io( { query: "username="+name+"&room="+room+"&playerID="+playerID });
       $('form').submit(function(){
         //socket.emit('chat message with ack', $('#m').val(), function(data){
@@ -40,7 +40,7 @@
         return false;
       });
       socket.on('set playerID', function(id) {
-        sessionStorage.setItem("playerID", id);
+        localStorage.setItem("playerID", id);
         playerID = id;
         updateNameHeader();
       });
