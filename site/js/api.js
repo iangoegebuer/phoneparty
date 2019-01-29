@@ -18,29 +18,29 @@ function Room() {
   localStorage.setItem("room", this.room);
   this.socket = io( { query: "username="+this.name+"&room="+this.room+"&playerID="+this.playerID });
 
+  // need context because socket takes over "this"
+  var thisRoom = this;
   this.socket.on('set playerID', function(id) {
     localStorage.setItem("playerID", id);
-    window.gameRoom.playerID = id;
-    window.gameRoom.game.event('set playerID',id);
+    thisRoom.playerID = id;
+    thisRoom.game.event('set playerID',id);
   });
   this.socket.on('sync var', function(varName, data) {
     console.log(data);
-    window.gameRoom.game.event('sync var',{'name':varName,'value':data});
+    thisRoom.game.event('sync var',{'name':varName,'value':data});
   });
   this.socket.on('to everyone', function(msg){
-    
-    window.gameRoom.game.event('to everyone',msg);
+    thisRoom.game.event('to everyone',msg);
   });
   this.socket.on('player list', function(list) {
     console.log(list);
   });
+}
 
-  this.setGame = function(game) {
-    this.game = game;
-  }
+Room.prototype.setGame = function(game) {
+  this.game = game;
+}
 
-
-  this.setUp = function() {
-    this.socket.emit('player list');
-  }
+Room.prototype.setUp = function() {
+  this.socket.emit('player list');
 }
