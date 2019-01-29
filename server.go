@@ -16,6 +16,7 @@ type Room struct {
 	entryCode string
 	members   []Player  // the first player is always the owner
 	expires   time.Time // todo implement room expiration
+	timerLeft time.Duration
 }
 
 func (room Room) findPlayer(playerID string) (bool, Player) {
@@ -111,6 +112,33 @@ func main() {
 		so.On("player list", func() {
 			so.Emit("player list", room.listPlayers())
 		})
+		so.On("sync var", func(varName string, data string) {
+			// only sync vars given by the host
+			if playerInRoom.id != room.members[0].id {
+				return
+			}
+			server.BroadcastTo("chat_"+roomCode, "sync var", varName, data)
+		})
+
+		so.On("start timer", func(seconds string) {
+			// only the host can start the timer
+			if playerInRoom.id != room.members[0].id {
+				return
+			}
+			// TODO
+			server.BroadcastTo("chat_"+roomCode, "start timer", seconds)
+		})
+		// there is a message called "sync timer" that the server sends to clients to sync up their timers
+		// there is a message called "finish timer" that the server sends to clients when the timer ends
+		so.On("cancel timer", func() {
+			// only the host can cancel the timer
+			if playerInRoom.id != room.members[0].id {
+				return
+			}
+			// TODO
+			server.BroadcastTo("chat_"+roomCode, "cancel timer")
+		})
+
 		so.On("disconnection", func() {
 			log.Println("on disconnect")
 		})
@@ -168,7 +196,7 @@ func main() {
 
 func startPeriodic() {
 	// I barely understand this but it runs periodic every 30 seconds
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	quit := make(chan struct{})
 	go func() {
 		for {
