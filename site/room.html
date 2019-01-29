@@ -16,41 +16,35 @@
     <script src="site/socket.io-1.3.7.js"></script>
     <script src="site/jquery-1.11.1.js"></script>
     <script src="site/js/util.js"></script>
+    <script src="site/js/api.js"></script>
+    <script src="site/js/game.js"></script>
     <script>
-      var room = location.pathname.replace('/','');
-      var name = localStorage.getItem("name");
-      console.log(name);
-      if (!name || name === "null" || name.length === 0) {
-        console.log("no name");
-        window.location.href = "/?error=name&room=" + room;
-      }
-      var playerID = localStorage.getItem("playerID");
-      if (!playerID || playerID === "null" || playerID.length === 0) {
-        playerID = "";
-      }
-      updateNameHeader();
-      localStorage.setItem("room", room);
-      var socket = io( { query: "username="+name+"&room="+room+"&playerID="+playerID });
-      $('form').submit(function(){
-        //socket.emit('chat message with ack', $('#m').val(), function(data){
-        //  $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
-        //});
-        socket.emit('to everyone', name + ": " + $('#m').val());
-        $('#m').val('');
-        return false;
-      });
-      socket.on('set playerID', function(id) {
-        localStorage.setItem("playerID", id);
-        playerID = id;
-        updateNameHeader();
-      });
-      socket.on('to everyone', function(msg){
-        $('#messages').append($('<li>').text(msg));
-      });
+    var gameRoom = new Room();
+    window.gameRoom = gameRoom;
+    gameRoom.setUp();
+    var game = new gameBase(gameRoom);
+    gameRoom.setGame(game);
 
-      function updateNameHeader() {
-        $('#nameheader').text('Name: ' + name + ' (playerID: ' + playerID + ')');
-      }
+    gameRoom.game.setHandler('to everyone',function(msg) {
+      $('#messages').append($('<li>').text(msg));
+    });
+
+    gameRoom.game.setHandler('set playerID',function(id) {
+      console.log(id);
+      $('#nameheader').text('Name: ' + gameRoom.name + ' (playerID: ' + gameRoom.playerID + ')');
+    });
+
+    $('form').submit(function(){
+      //socket.emit('chat message with ack', $('#m').val(), function(data){
+      //  $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
+      //});
+      gameRoom.socket.emit('to everyone', gameRoom.name + ": " + $('#m').val());
+      gameRoom.socket.emit('sync var','lastMessage', gameRoom.name + ": " + $('#m').val())
+
+      $('#m').val('');
+      return false;
+    });
+
     </script>
   </body>
 </html>
