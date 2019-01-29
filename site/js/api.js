@@ -28,8 +28,7 @@ function Room() {
     window.gameRoom.game.event('sync var',{'name':varName,'value':data});
   });
   this.socket.on('to everyone', function(msg){
-    console.log(window.gameRoom.game);
-      console.log(window.gameRoom);
+    
     window.gameRoom.game.event('to everyone',msg);
   });
   this.socket.on('player list', function(list) {
