@@ -8,7 +8,7 @@ function Room() {
   console.log(this.name);
   if (!this.name || this.name === "null" || this.name.length === 0) {
     console.log("no name");
-    window.location.href = "/?error=name&room=" + room;
+    window.location.href = "/?error=name&room=" + this.room;
   }
   this.playerID = localStorage.getItem("playerID");
   if (!this.playerID || this.playerID === "null" || this.playerID.length === 0) {

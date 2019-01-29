@@ -17,20 +17,20 @@ import (
 // Room : Data structure for rooms
 type Room struct {
 	entryCode        string
-	members          []Player  // the first player is always the owner
+	members          []*Player // the first player is always the owner
 	expires          time.Time // todo implement room expiration
 	timerActive      bool
 	timerSecondsLeft int
 	timerStop        chan struct{}
 }
 
-func (room Room) findPlayer(playerID string) (bool, Player) {
+func (room Room) findPlayer(playerID string) (bool, *Player) {
 	for _, player := range room.members {
 		if player.id == playerID {
 			return true, player
 		}
 	}
-	return false, Player{}
+	return false, nil
 }
 
 func (room Room) listPlayers() string {
@@ -51,15 +51,15 @@ type Player struct {
 	socket socketio.Socket
 }
 
-var rooms []Room
+var rooms []*Room
 
-func findRoom(code string) (bool, Room) {
+func findRoom(code string) (bool, *Room) {
 	for _, room := range rooms {
 		if room.entryCode == code {
 			return true, room
 		}
 	}
-	return false, Room{}
+	return false, nil
 }
 
 func main() {
@@ -87,16 +87,20 @@ func main() {
 		found, room := findRoom(roomCode)
 		if !found {
 			log.Println("Couldn't find room code ", roomCode)
+			// room is expired
+			so.Emit("error", "Unable to find the specified room")
+			return
 		}
 		found, playerInRoom := room.findPlayer(playerID)
 		if !found {
-			playerInRoom = Player{name: name, id: playerID, socket: so}
+			playerInRoom = &Player{name: name, id: playerID, socket: so}
+			room.members = append(room.members, playerInRoom)
 		} else {
 			// rename and use the new socket i guess?
 			playerInRoom.name = name
 			playerInRoom.socket = so
 		}
-		room.members = append(room.members, playerInRoom)
+		log.Println("Current player list in room ", room.entryCode, " : ", room.listPlayers())
 
 		// from is a player ID
 		so.On("to everyone", func(data string) {
@@ -158,9 +162,8 @@ func main() {
 							room.timerActive = false
 							ticker.Stop()
 							return
-						} else {
-							server.BroadcastTo("chat_"+roomCode, "sync timer", room.timerSecondsLeft)
 						}
+						server.BroadcastTo("chat_"+roomCode, "sync timer", room.timerSecondsLeft)
 						break
 					case <-room.timerStop:
 						log.Println("Timer cancelled in room ", room.entryCode)
@@ -207,7 +210,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := Room{entryCode: randStr, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
+		room := &Room{entryCode: randStr, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)
