@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,10 +14,12 @@ import (
 
 // Room : Data structure for rooms
 type Room struct {
-	entryCode string
-	members   []Player  // the first player is always the owner
-	expires   time.Time // todo implement room expiration
-	timerLeft time.Duration
+	entryCode        string
+	members          []Player  // the first player is always the owner
+	expires          time.Time // todo implement room expiration
+	timerActive      bool
+	timerSecondsLeft int
+	timerStop        chan struct{}
 }
 
 func (room Room) findPlayer(playerID string) (bool, Player) {
@@ -119,23 +122,63 @@ func main() {
 			}
 			server.BroadcastTo("chat_"+roomCode, "sync var", varName, data)
 		})
-
-		so.On("start timer", func(seconds string) {
-			// only the host can start the timer
+		// sync var where each player has a copy
+		so.On("sync player var", func(varName string, playerID string, data string) {
+			// only sync player vars given by the host
 			if playerInRoom.id != room.members[0].id {
 				return
 			}
-			// TODO
+			server.BroadcastTo("chat_"+roomCode, "sync player var", varName, playerID, data)
+		})
+
+		so.On("start timer", func(seconds string) {
+			// only the host can start the timer
+			if playerInRoom.id != room.members[0].id || room.timerActive {
+				return
+			}
+			secondsNum, err := strconv.Atoi(seconds)
+			if err == nil {
+				log.Println("Unable to parse timer time:", seconds)
+				return
+			}
+			room.timerActive = true
+			room.timerStop = make(chan struct{})
+			room.timerSecondsLeft = secondsNum
+			ticker := time.NewTicker(time.Second)
+			go func() {
+				for {
+					select {
+					case <-ticker.C:
+						room.timerSecondsLeft--
+						if room.timerSecondsLeft < 1 {
+							log.Println("Timer ended in room ", room.entryCode)
+							server.BroadcastTo("chat_"+roomCode, "finish timer")
+							room.timerActive = false
+							ticker.Stop()
+							return
+						} else {
+							server.BroadcastTo("chat_"+roomCode, "sync timer", room.timerSecondsLeft)
+						}
+						break
+					case <-room.timerStop:
+						log.Println("Timer cancelled in room ", room.entryCode)
+						room.timerActive = false
+						ticker.Stop()
+						return
+					}
+				}
+			}()
+
 			server.BroadcastTo("chat_"+roomCode, "start timer", seconds)
 		})
 		// there is a message called "sync timer" that the server sends to clients to sync up their timers
 		// there is a message called "finish timer" that the server sends to clients when the timer ends
 		so.On("cancel timer", func() {
 			// only the host can cancel the timer
-			if playerInRoom.id != room.members[0].id {
+			if playerInRoom.id != room.members[0].id || !room.timerActive {
 				return
 			}
-			// TODO
+			close(room.timerStop)
 			server.BroadcastTo("chat_"+roomCode, "cancel timer")
 		})
 
@@ -162,7 +205,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := Room{entryCode: randStr, expires: time.Now().Add(time.Hour * 2)}
+		room := Room{entryCode: randStr, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)
@@ -196,7 +239,7 @@ func main() {
 
 func startPeriodic() {
 	// I barely understand this but it runs periodic every 30 seconds
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	quit := make(chan struct{})
 	go func() {
 		for {
