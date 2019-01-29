@@ -10,10 +10,21 @@ function Game(gameRoom) {
       $('#messages').empty();
       $('#messages').append($('<li>').text(this.gameVariables['lastMessage']));
       $('#game').empty();
-      list = $('<ul>');
+      list = $('<div>');
       for(i=1;i <= 12;i++) {
-        list.append($('<li>').text("Item " + i));
-        list.append($('<li>').append($('<input>').prop({id:"a"+i,autocomplete:'off'})));
+        // <label for="basic-url">Your vanity URL</label>
+        // <div class="input-group mb-3">
+        //   <div class="input-group-prepend">
+        //     <span class="input-group-text" id="basic-addon3">https://example.com/users/</span>
+        //   </div>
+        //   <input type="text" class="form-control" id="basic-url" aria-describedby="basic-addon3">
+        // </div>
+
+
+        list.append($('<label>').text("Item " + i).prop({for:'a'+i}));
+
+        list.append($('<div>').prop({class:"input-group mb-3"}).append(
+          $('<input>').prop({id:"a"+i,autocomplete:'off',class:"form-control",type:"text"})));
       }
       // list.append($('<li>').$('<input>').prop({'id':"a2",'autocomplete':'off'}));
       $('#game').append(list);

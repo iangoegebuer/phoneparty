@@ -1,19 +1,33 @@
 <!doctype html>
-<html>
+<html class="h-100">
   <head>
     <title>Phone Party</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <link href="site/css/site.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
   </head>
-  <body>
-    <h1 id="nameheader"></h1>
-    <ul id="messages"></ul>
-    <div id="game"></div>
+  <body class="h-100">
+    <div class="d-flex h-100 flex-column p-2">
+
+    <div id="game" class="scoll flex-row"></div>
+    <div class="flex-row">
     <form action="">
-      <input id="m" autocomplete="off" /><button type="button">Send</button>
+
+        <h1 id="nameheader"></h1>
+        <ul id="messages"></ul>
+      <div class="form-group">
+      <div class="input-group mb-3">
+      <input id="m" autocomplete="off" class="form-control" />
+      <div class="input-group-append">
+        <button class="btn btn-primary">Send</button>
+      </div>
+      </div>
+    </div>
     </form>
+  </div>
+</div>
     <script src="site/socket.io-1.3.7.js"></script>
     <script src="site/jquery-1.11.1.js"></script>
     <script src="site/js/util.js"></script>
@@ -22,11 +36,11 @@
     <script>
     var gameRoom = new Room();
     window.gameRoom = gameRoom;
-    gameRoom.setUp();
 
     $.getScript('site/js/lettersAndLists.js').done(function(script, status){
       console.log(status);
       gameRoom.setGame(new Game(gameRoom));
+      gameRoom.setUp();
     }).fail(function( jqxhr, settings, exception ) {
       console.log(jqxhr);
       console.log(settings);

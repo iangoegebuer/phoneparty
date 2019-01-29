@@ -3,6 +3,7 @@ function gameBase(gameRoom) {
 
   this.gameVariables = {};
   this.handlers = {};
+  this.isHost = false;
 
   this.event = function(type,info) {
     if(this.handlers.hasOwnProperty(type)) {
@@ -21,5 +22,6 @@ function gameBase(gameRoom) {
   }
 
   this.setHandler('sync var', this.syncVar);
+  //TODO: Auto sync everything in gameVariables
 
 }

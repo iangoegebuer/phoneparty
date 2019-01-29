@@ -34,11 +34,14 @@ function Room() {
   });
   this.socket.on('player list', function(list) {
     console.log(list);
+    if(list.split(',')[0] == thisRoom.playerID)
+      thisRoom.game.isHost = true;
   });
 }
 
 Room.prototype.setGame = function(game) {
   this.game = game;
+  this.setUp();
 }
 
 Room.prototype.setUp = function() {
