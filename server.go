@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -231,10 +233,12 @@ func main() {
 			}
 		}
 	})
-	log.Println("Serving at localhost:8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
 
 	startPeriodic()
+	go processCommands()
+
+	log.Println("Serving at localhost:8080...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func startPeriodic() {
@@ -263,6 +267,24 @@ func periodic() {
 			log.Println("Removing expired room " + rooms[i].entryCode)
 			rooms = append(rooms[:i], rooms[i+1:]...)
 			i--
+		}
+	}
+}
+
+func processCommands() {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			log.Println("err", err)
+			continue
+		}
+		text = strings.Replace(text, "\r", "", -1)
+		text = strings.Replace(text, "\n", "", -1)
+		log.Println("Command input: ", text)
+		if strings.Compare("quit", text) == 0 {
+			os.Exit(0)
 		}
 	}
 }
