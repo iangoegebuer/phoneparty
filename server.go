@@ -19,7 +19,7 @@ import (
 type Room struct {
 	entryCode        string
 	members          []*Player // the first player is always the owner
-	expires          time.Time // todo implement room expiration
+	expires          time.Time
 	timerActive      bool
 	timerSecondsLeft int
 	timerStop        chan struct{}
@@ -27,7 +27,7 @@ type Room struct {
 
 func (room Room) findPlayer(playerID string) (bool, *Player) {
 	for _, player := range room.members {
-		if player.id == playerID {
+		if player.ID == playerID {
 			return true, player
 		}
 	}
@@ -35,10 +35,12 @@ func (room Room) findPlayer(playerID string) (bool, *Player) {
 }
 
 func (room Room) listPlayers() string {
-	//result := []Player{}
-	//for i, player := range room.members {
-	//	result = append(result, *player)
+	//result := "["
+	//for _, player := range room.members {
+	//	bytes, _ = json.Marshal(player)
+	//	result += string(bytes) + ","
 	//}
+	//result += "]"
 	// TODO FIX: this doesn't work at all
 	bytes, _ := json.Marshal(room.members)
 	return string(bytes)
@@ -47,8 +49,8 @@ func (room Room) listPlayers() string {
 
 // Player : Data structure for players
 type Player struct {
-	name   string
-	id     string
+	Name   string
+	ID     string
 	socket socketio.Socket
 }
 
@@ -94,11 +96,11 @@ func main() {
 		}
 		found, playerInRoom := room.findPlayer(playerID)
 		if !found {
-			playerInRoom = &Player{name: name, id: playerID, socket: so}
+			playerInRoom = &Player{Name: name, ID: playerID, socket: so}
 			room.members = append(room.members, playerInRoom)
 		} else {
 			// rename and use the new socket i guess?
-			playerInRoom.name = name
+			playerInRoom.Name = name
 			playerInRoom.socket = so
 		}
 		log.Println("Current player list in room ", room.entryCode, " : ", room.listPlayers())
@@ -124,7 +126,7 @@ func main() {
 		})
 		so.On("sync var", func(varName string, data string) {
 			// only sync vars given by the host
-			if playerInRoom.id != room.members[0].id {
+			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
 			server.BroadcastTo("chat_"+roomCode, "sync var", varName, data)
@@ -132,7 +134,7 @@ func main() {
 		// sync var where each player has a copy
 		so.On("sync player var", func(varName string, playerID string, data string) {
 			// only sync player vars given by the host
-			if playerInRoom.id != room.members[0].id {
+			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
 			server.BroadcastTo("chat_"+roomCode, "sync player var", varName, playerID, data)
@@ -140,7 +142,7 @@ func main() {
 
 		so.On("start timer", func(seconds string) {
 			// only the host can start the timer
-			if playerInRoom.id != room.members[0].id || room.timerActive {
+			if playerInRoom.ID != room.members[0].ID || room.timerActive {
 				return
 			}
 			secondsNum, err := strconv.Atoi(seconds)
@@ -181,7 +183,7 @@ func main() {
 		// there is a message called "finish timer" that the server sends to clients when the timer ends
 		so.On("cancel timer", func() {
 			// only the host can cancel the timer
-			if playerInRoom.id != room.members[0].id || !room.timerActive {
+			if playerInRoom.ID != room.members[0].ID || !room.timerActive {
 				return
 			}
 			close(room.timerStop)

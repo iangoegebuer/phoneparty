@@ -16,7 +16,7 @@ function Room() {
   }
 
   localStorage.setItem("room", this.room);
-  this.socket = io( { query: "username="+this.name+"&room="+this.room+"&playerID="+this.playerID });
+  this.socket = io( { query: "name="+this.name+"&room="+this.room+"&playerID="+this.playerID });
 
   // need context because socket takes over "this"
   var thisRoom = this;
