@@ -33,8 +33,10 @@ function Room() {
     thisRoom.game.event('to everyone',msg);
   });
   this.socket.on('player list', function(list) {
+    list = JSON.parse(list)
     console.log(list);
-    if(list.split(',')[0] == thisRoom.playerID)
+    if(list.length > 0 && list[0].ID === thisRoom.playerID)
+      console.log("I am the host")
       thisRoom.game.isHost = true;
   });
 }
