@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"net/http"
@@ -34,14 +35,14 @@ func (room Room) findPlayer(playerID string) (bool, *Player) {
 }
 
 func (room Room) listPlayers() string {
-	result := ""
-	for i, player := range room.members {
-		result += player.id
-		if i < len(room.members)-1 {
-			result += ","
-		}
-	}
-	return result
+	//result := []Player{}
+	//for i, player := range room.members {
+	//	result = append(result, *player)
+	//}
+	// TODO FIX: this doesn't work at all
+	bytes, _ := json.Marshal(room.members)
+	return string(bytes)
+	//return string(json.Marshal(result))
 }
 
 // Player : Data structure for players
