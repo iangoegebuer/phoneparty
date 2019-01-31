@@ -5,6 +5,7 @@ function gameBase(gameRoom) {
   this.handlers = {};
   this.playerID = null;
   this.isHost = false;
+  this.started = false;
 
   this.event = function(from, type, info) {
     if (this.handlers.hasOwnProperty(type)) {

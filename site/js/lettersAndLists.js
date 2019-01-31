@@ -41,6 +41,8 @@ function Game(gameRoom) {
     }
 
     $('#game').append(list);
+
+    this.started = true;
   }
 
 }

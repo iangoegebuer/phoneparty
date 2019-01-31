@@ -29,7 +29,7 @@ function Room() {
     console.log(data);
     console.log(thisRoom.game.gameVariables['script']);
     console.log("sync var name " + varName + " data " + data);
-    if(varName == 'script' && thisRoom.game.gameVariables['script'] != data) {
+    if(varName == 'script' && (thisRoom.game.started == false || thisRoom.game.gameVariables['script'] != data)) {
       $.getScript(data).done(function(script, status){
         $('#game').empty();
         console.log(status);
@@ -49,7 +49,13 @@ function Room() {
     thisRoom.game.event(from, msgType, msg);
   });
   this.socket.on('to host', function(from, msgType, msg){
-    thisRoom.game.event(from, msgType, msg);
+    console.log(msgType);
+    console.log(msg);
+    if(msgType == 'sync')
+      //thisRoom.game.syncVar(msg,thisRoom.game.gameVariables[msg]);
+      thisRoom.socket.emit('sync var',msg,thisRoom.game.gameVariables[msg]);
+    else
+      thisRoom.game.event(from, msgType, msg);
   });
   this.socket.on('to player', function(from, msgType, msg){
     thisRoom.game.event(from, msgType, msg);
@@ -66,7 +72,8 @@ function Room() {
 
       thisRoom.game.setup();
     } else {
-      thisRoom.socket.emit('to host','script sync')
+      console.log('Force sync');
+      thisRoom.socket.emit('to host','sync','script');
     }
   });
 }

@@ -10,8 +10,10 @@ function Game(gameRoom) {
 
   gameBase.call(this,gameRoom);
 
-  this.setHandler('to everyone',function(msg) {
-       this.messages.append($('<li>').text(msg));
+  this.gameVariables['script'] = 'site/js/launchPad.js';
+
+  this.setHandler('chat',function(from, msg) {
+      this.messages.append($('<li>').text(msg));
   });
   this.setHandler('set playerID',function(id) {
     console.log(id);
@@ -76,12 +78,15 @@ function Game(gameRoom) {
 
     this.form.submit(function(){
 
-      thisGame.gameRoom.socket.emit('to everyone', thisGame.gameRoom.name +
+      thisGame.gameRoom.socket.emit('to everyone', 'chat', thisGame.gameRoom.name +
                                                   ": " + thisGame.messageBox.val());
+      // thisGame.gameRoom.socket.emit('to everyone', 'chat', gameRoom.name + ": " + $('#m').val());
 
       thisGame.messageBox.val('');
       return false;
     });
+
+    this.started = true;
   }
 
 }
