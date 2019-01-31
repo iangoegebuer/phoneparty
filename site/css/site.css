@@ -7,8 +7,21 @@ body { font: 13px Helvetica, Arial; }
 #messages li { padding: 5px 10px; }
 #messages li:nth-child(odd) { background: #eee; }
 
-.scoll {    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    overflow-y: scroll;}
+.scoll {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;}
 .fill {height: 100vh}
+
+.column {
+  float: left;
+  width: 33.33%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}

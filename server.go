@@ -51,6 +51,7 @@ func (room Room) listPlayers() string {
 type Player struct {
 	Name   string
 	ID     string
+	Host   bool
 	socket socketio.Socket
 }
 
@@ -96,7 +97,11 @@ func main() {
 		}
 		found, playerInRoom := room.findPlayer(playerID)
 		if !found {
-			playerInRoom = &Player{Name: name, ID: playerID, socket: so}
+			host := false
+			if len(room.members) == 0 {
+				host = true
+			}
+			playerInRoom = &Player{Name: name, ID: playerID, Host: host, socket: so}
 			room.members = append(room.members, playerInRoom)
 		} else {
 			// rename and use the new socket i guess?
@@ -106,19 +111,19 @@ func main() {
 		log.Println("Current player list in room ", room.entryCode, " : ", room.listPlayers())
 
 		// from is a player ID
-		so.On("to everyone", func(data string) {
-			server.BroadcastTo("chat_"+roomCode, "to everyone", data)
+		so.On("to everyone", func(msgType string, data string) {
+			server.BroadcastTo("chat_"+roomCode, "to everyone", playerID, msgType, data)
 		})
-		so.On("to host", func(data string) {
+		so.On("to host", func(msgType string, data string) {
 			if len(room.members) > 0 {
 				hostSo := room.members[0].socket
-				hostSo.Emit("to host", data)
+				hostSo.Emit("to host", playerID, msgType, data)
 			}
 		})
-		so.On("to player", func(to string, data string) {
+		so.On("to player", func(to string, msgType string, data string) {
 			found, player := room.findPlayer(to)
 			if found {
-				player.socket.Emit("to player", data)
+				player.socket.Emit("to player", playerID, msgType, data)
 			}
 		})
 		so.On("player list", func() {
@@ -130,14 +135,6 @@ func main() {
 				return
 			}
 			server.BroadcastTo("chat_"+roomCode, "sync var", varName, data)
-		})
-		// sync var where each player has a copy
-		so.On("sync player var", func(varName string, playerID string, data string) {
-			// only sync player vars given by the host
-			if playerInRoom.ID != room.members[0].ID {
-				return
-			}
-			server.BroadcastTo("chat_"+roomCode, "sync player var", varName, playerID, data)
 		})
 
 		so.On("start timer", func(seconds string) {

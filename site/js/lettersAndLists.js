@@ -4,7 +4,7 @@ function Game(gameRoom) {
 
   gameBase.call(this,gameRoom);
 
-  this.setHandler('to everyone',function(msg) {
+  this.setHandler('chat',function(from, msg) {
     if(msg == 'new game') {
       $('#messages').empty();
     }
@@ -19,7 +19,11 @@ function Game(gameRoom) {
   console.log($('form'));
 
   $('form').submit(function(){
-    gameRoom.socket.emit('to everyone', gameRoom.name + ": " + $('#m').val());
+    //socket.emit('chat message with ack', $('#m').val(), function(data){
+    //  $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
+    //});
+    gameRoom.socket.emit('to everyone', 'chat', gameRoom.name + ": " + $('#m').val());
+    //gameRoom.socket.emit('sync var','lastMessage', gameRoom.name + ": " + $('#m').val())
 
     $('#m').val('');
     return false;

@@ -3,11 +3,12 @@ function gameBase(gameRoom) {
 
   this.gameVariables = {script:'site/js/launchPad2.js'};
   this.handlers = {};
+  this.playerID = null;
   this.isHost = false;
 
-  this.event = function(type,info) {
-    if(this.handlers.hasOwnProperty(type)) {
-      this.handlers[type].call(this,info);
+  this.event = function(from, type, info) {
+    if (this.handlers.hasOwnProperty(type)) {
+      this.handlers[type].call(this, from, info);
     }
   }
 
@@ -15,18 +16,20 @@ function gameBase(gameRoom) {
     this.handlers[type] = method;
   }
 
-  this.syncVar = function(data) {
+  this.syncVar = function(name, value) {
     console.log(this);
-
-    this.gameVariables[data['name']] = data['value'];
+    console.log("syncing " + name + " to " + value)
+    this.gameVariables[name] = value;
   }
 
+  // I call syncvar straight from api.js
+  //this.setHandler('sync var', this.syncVar);
   this.toHost = function(data) {
     if('data' == 'script sync')
       thisGame.gameRoom.socket.emit('sync var','script',this.gameVariables['script']);
   }
 
-  this.setHandler('sync var', this.syncVar);
+  //this.setHandler('sync var', this.syncVar);
   this.setHandler('to host', this.toHost);
   //TODO: Auto sync everything in gameVariables
 
