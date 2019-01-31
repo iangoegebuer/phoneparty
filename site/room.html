@@ -10,9 +10,11 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
   </head>
   <body class="h-100">
-    <div class="d-flex h-100 flex-column p-2">
+    <div class="d-flex h-100 flex-column p-1">
 
-    <div id="game" class="scoll flex-column"></div>
+    <div id="header" class="rounded-top flex-column border-top border-right border-left text-center font-weight-bold bg-secondary pt-1 pb-2"> </div>
+    <div id="game" class="scoll flex-column border-right border-left p-2"></div>
+    <div id="footer" class="rounded-bottom flex-column border-bottom border-right border-left pl-2 pr-2 pt-2"></div>
 </div>
     <script src="site/socket.io-1.3.7.js"></script>
     <script src="site/jquery-1.11.1.js"></script>

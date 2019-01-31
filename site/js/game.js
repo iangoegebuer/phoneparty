@@ -30,12 +30,20 @@ function gameBase(gameRoom) {
   // I call syncvar straight from api.js
   //this.setHandler('sync var', this.syncVar);
   this.toHost = function(data) {
+    console.log(data);
+    if('data' == 'script sync')
+      thisGame.gameRoom.socket.emit('sync var','script',this.gameVariables['script']);
+  }
+
+  this.toPlayer = function(data) {
+    console.log(data);
     if('data' == 'script sync')
       thisGame.gameRoom.socket.emit('sync var','script',this.gameVariables['script']);
   }
 
   //this.setHandler('sync var', this.syncVar);
   this.setHandler('to host', this.toHost);
+  this.setHandler('to player', this.toPlayer);
   //TODO: Auto sync everything in gameVariables
 
 
@@ -43,15 +51,15 @@ function gameBase(gameRoom) {
   this.sendToPlayer = function (to, msgType, data) {
     gameRoom.sendToPlayer(to, msgType, data);
   }
-  
+
   this.sendToHost = function (msgType, data) {
-    gameRoom.sendToPlayer(msgType, data);
+    gameRoom.sendToHost(msgType, data);
   }
-  
+
   this.sendToEveryone = function (msgType, data) {
-    gameRoom.sendToPlayer(msgType, data);
+    gameRoom.sendToEveryone(msgType, data);
   }
-  
+
   this.getSyncVar = function (varName) {
     return this.gameVariables[varName];
   }
@@ -61,7 +69,7 @@ function gameBase(gameRoom) {
       console.log("Cannot set sync vars unless you are the host");
       return;
     }
-    this.gameVariables[varName] = value;
+    this.gameVariables[varName] = data;
     // send across the network
     gameRoom.setSyncVar(varName, data);
   }
