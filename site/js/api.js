@@ -20,9 +20,12 @@ function Room() {
 
   // need context because socket takes over "this"
   var thisRoom = this;
-  this.socket.on('set playerID', function(id) {
-    localStorage.setItem("playerID", id);
-    thisRoom.game.playerID = id;
+  this.socket.on('set player info', function(info) {
+    info = JSON.parse(info)
+    console.log(info)
+    localStorage.setItem("playerID", info.ID);
+    thisRoom.game.playerID = info.ID;
+    thisRoom.game.isHost = info.Host;
   });
   this.socket.on('sync var', function(varName, data) {
     console.log("sync var name " + varName + " data " + data);
@@ -30,8 +33,8 @@ function Room() {
       $.getScript(data).done(function(script, status){
         $('#game').empty();
         console.log(status);
-        gameRoom.setGame(new Game(gameRoom));
-        gameRoom.setUp();
+        thisRoom.setGame(new Game(thisRoom));
+        thisRoom.game.setup()
       }).fail(function( jqxhr, settings, exception ) {
         console.log(jqxhr);
         console.log(settings);
@@ -54,19 +57,27 @@ function Room() {
   this.socket.on('player list', function(list) {
     list = JSON.parse(list)
     console.log(list);
-    if(list.length > 0 && list[0].ID === thisRoom.playerID) {
-      console.log("I am the host");
-      thisRoom.game.isHost = true;
-    }
-    thisRoom.game.setup();
+    thisRoom.game.playerList = list;
   });
 }
 
-Room.prototype.setGame = function(game) {
+Room.prototype.setGame = function (game) {
   this.game = game;
-  this.setUp();
 }
 
-Room.prototype.setUp = function() {
-  this.socket.emit('player list');
+Room.prototype.sendToPlayer = function (to, msgType, data) {
+  this.socket.emit("to player", to, msgType, data);
+}
+
+Room.prototype.sendToHost = function (msgType, data) {
+  this.socket.emit("to host", msgType, data);
+}
+
+Room.prototype.sendToEveryone = function (msgType, data) {
+  this.socket.emit("to everyone", msgType, data);
+}
+
+// host only
+Room.prototype.setSyncVar = function (varName, data) {
+  
 }

@@ -5,6 +5,10 @@ function gameBase(gameRoom) {
   this.handlers = {};
   this.playerID = null;
   this.isHost = false;
+  this.playerList = [];
+  this.setup = function () {
+    // Override this for setup functionality
+  }
 
   this.event = function(from, type, info) {
     if (this.handlers.hasOwnProperty(type)) {
@@ -26,4 +30,22 @@ function gameBase(gameRoom) {
   //this.setHandler('sync var', this.syncVar);
   //TODO: Auto sync everything in gameVariables
 
+
+  // Calls directly to the Room api
+  this.sendToPlayer = function (to, msgType, data) {
+    gameRoom.sendToPlayer(to, msgType, data);
+  }
+  
+  this.sendToHost = function (msgType, data) {
+    gameRoom.sendToPlayer(msgType, data);
+  }
+  
+  this.sendToEveryone = function (msgType, data) {
+    gameRoom.sendToPlayer(msgType, data);
+  }
+  
+  // host only
+  this.setSyncVar = function (varName, data) {
+    gameRoom.setSyncVar(varName, data)
+  }
 }

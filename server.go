@@ -35,16 +35,8 @@ func (room Room) findPlayer(playerID string) (bool, *Player) {
 }
 
 func (room Room) listPlayers() string {
-	//result := "["
-	//for _, player := range room.members {
-	//	bytes, _ = json.Marshal(player)
-	//	result += string(bytes) + ","
-	//}
-	//result += "]"
-	// TODO FIX: this doesn't work at all
 	bytes, _ := json.Marshal(room.members)
 	return string(bytes)
-	//return string(json.Marshal(result))
 }
 
 // Player : Data structure for players
@@ -86,7 +78,6 @@ func main() {
 			var id, _ = uuid.NewRandom()
 			playerID = id.String()
 			log.Println("Assigning player ID ", playerID, " to ", name)
-			so.Emit("set playerID", playerID)
 		}
 		found, room := findRoom(roomCode)
 		if !found {
@@ -108,6 +99,8 @@ func main() {
 			playerInRoom.Name = name
 			playerInRoom.socket = so
 		}
+		bytes, _ := json.Marshal(playerInRoom)
+		so.Emit("set player info", string(bytes))
 		log.Println("Current player list in room ", room.entryCode, " : ", room.listPlayers())
 
 		// from is a player ID
