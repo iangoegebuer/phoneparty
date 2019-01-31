@@ -26,7 +26,6 @@
     $.getScript('site/js/launchPad.js').done(function(script, status){
       console.log(status);
       gameRoom.setGame(new Game(gameRoom));
-      gameRoom.setUp();
     }).fail(function( jqxhr, settings, exception ) {
       console.log(jqxhr);
       console.log(settings);

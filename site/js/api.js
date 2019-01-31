@@ -26,29 +26,50 @@ function Room() {
     localStorage.setItem("playerID", info.ID);
     thisRoom.game.playerID = info.ID;
     thisRoom.game.isHost = info.Host;
+    if(thisRoom.game.isHost) {
+      thisRoom.game.setup();
+    } else {
+      console.log('Force sync');
+      thisRoom.socket.emit('to host','sync','script');
+    }
   });
   this.socket.on('sync var', function(varName, data) {
+    console.log(varName);
+    console.log(data);
+    console.log(thisRoom.game.gameVariables['script']);
     console.log("sync var name " + varName + " data " + data);
-    if(varName == 'script') {
+    if(varName == 'script' && (thisRoom.game.started == false || thisRoom.game.gameVariables['script'] != data)) {
       $.getScript(data).done(function(script, status){
         $('#game').empty();
         console.log(status);
-        thisRoom.setGame(new Game(thisRoom));
-        thisRoom.game.setup()
+        thisRoom.setGame(new Game(gameRoom));
+        thisRoom.game.gameVariables['script'] = data;
+        thisRoom.game.setup();
       }).fail(function( jqxhr, settings, exception ) {
         console.log(jqxhr);
         console.log(settings);
         console.log(exception);
       });
     }
-    thisRoom.game.syncVar(varName, data);
+    // only change the sync var for non-host
+    if (!thisRoom.game.isHost) {
+      
+    }
+    thisRoom.game.syncVarChanged(varName, data);
   });
   // these 3 are identical, since they contain who sent the message
   this.socket.on('to everyone', function(from, msgType, msg){
     thisRoom.game.event(from, msgType, msg);
   });
   this.socket.on('to host', function(from, msgType, msg){
-    thisRoom.game.event(from, msgType, msg);
+    console.log(msgType);
+    console.log(msg);
+    if(msgType == 'sync') {
+      //thisRoom.game.syncVar(msg,thisRoom.game.gameVariables[msg]);
+      thisRoom.socket.emit('sync var', msg, thisRoom.game.gameVariables[msg]);
+    } else {
+      thisRoom.game.event(from, msgType, msg);
+    }
   });
   this.socket.on('to player', function(from, msgType, msg){
     thisRoom.game.event(from, msgType, msg);
@@ -79,5 +100,5 @@ Room.prototype.sendToEveryone = function (msgType, data) {
 
 // host only
 Room.prototype.setSyncVar = function (varName, data) {
-  
+  thisRoom.socket.emit('sync var', varName, data);
 }
