@@ -1,7 +1,7 @@
 function gameBase(gameRoom) {
   this.gameRoom = gameRoom;
 
-  this.gameVariables = {};
+  this.gameVariables = {script:'site/js/launchPad.js'};
   this.handlers = {};
   this.playerID = null;
   this.isHost = false;
