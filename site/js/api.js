@@ -26,6 +26,19 @@ function Room() {
     thisRoom.game.event('set playerID',id);
   });
   this.socket.on('sync var', function(varName, data) {
+    if(varName == 'script') {
+      $.getScript(data).done(function(script, status){
+        $('#game').empty();
+        console.log(status);
+        gameRoom.setGame(new Game(gameRoom));
+        gameRoom.setUp();
+      }).fail(function( jqxhr, settings, exception ) {
+        console.log(jqxhr);
+        console.log(settings);
+        console.log(exception);
+      });
+    }
+
     console.log(data);
     thisRoom.game.event('sync var',{'name':varName,'value':data});
   });
@@ -35,9 +48,11 @@ function Room() {
   this.socket.on('player list', function(list) {
     list = JSON.parse(list)
     console.log(list);
-    if(list.length > 0 && list[0].ID === thisRoom.playerID)
-      console.log("I am the host")
+    if(list.length > 0 && list[0].ID === thisRoom.playerID) {
+      console.log("I am the host");
       thisRoom.game.isHost = true;
+    }
+    thisRoom.game.setup();
   });
 }
 
