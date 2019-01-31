@@ -26,12 +26,17 @@ function Room() {
     thisRoom.game.event('set playerID',id);
   });
   this.socket.on('sync var', function(varName, data) {
-    if(varName == 'script') {
+
+    console.log(varName);
+    console.log(data);
+    console.log(thisRoom.game.gameVariables['script']);
+    if(varName == 'script' && thisRoom.game.gameVariables['script'] != data) {
       $.getScript(data).done(function(script, status){
         $('#game').empty();
         console.log(status);
-        gameRoom.setGame(new Game(gameRoom));
-        gameRoom.setUp();
+        thisRoom.setGame(new Game(gameRoom));
+        thisRoom.game.gameVariables['script'] = data;
+        thisRoom.game.setup();
       }).fail(function( jqxhr, settings, exception ) {
         console.log(jqxhr);
         console.log(settings);
@@ -52,7 +57,12 @@ function Room() {
       console.log("I am the host");
       thisRoom.game.isHost = true;
     }
-    thisRoom.game.setup();
+    if(thisRoom.game.isHost) {
+
+      thisRoom.game.setup();
+    } else {
+      thisRoom.socket.emit('to host','script sync')
+    }
   });
 }
 
