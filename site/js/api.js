@@ -22,16 +22,23 @@ function Room() {
   var thisRoom = this;
   this.socket.on('set playerID', function(id) {
     localStorage.setItem("playerID", id);
-    thisRoom.playerID = id;
-    thisRoom.game.event('set playerID',id);
+    thisRoom.game.playerID = id;
   });
   this.socket.on('sync var', function(varName, data) {
-    console.log(data);
-    thisRoom.game.event('sync var',{'name':varName,'value':data});
+    console.log("sync var data " + data);
+    thisRoom.game.syncVar(varName, data);
   });
-  this.socket.on('to everyone', function(msg){
-    thisRoom.game.event('to everyone',msg);
+  // these 3 are identical, since they contain who sent the message
+  this.socket.on('to everyone', function(from, msgType, msg){
+    thisRoom.game.event(from, msgType, msg);
   });
+  this.socket.on('to host', function(from, msgType, msg){
+    thisRoom.game.event(from, msgType, msg);
+  });
+  this.socket.on('to player', function(from, msgType, msg){
+    thisRoom.game.event(from, msgType, msg);
+  });
+
   this.socket.on('player list', function(list) {
     list = JSON.parse(list)
     console.log(list);
