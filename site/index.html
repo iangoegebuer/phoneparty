@@ -17,10 +17,16 @@
     <script>
       var urlvars = getURLVars();
       var errorType = urlvars.error || null;
+      var errorText = "";
       if (errorType === "code") {
-        $('#errormsg').text('Unable to join the room.');
+        errorText = 'Unable to join the room.';
       } else if (errorType === "name") {
-        $('#errormsg').text('Please enter a name.');
+        errorText = 'Please enter a name.';
+      } else if (errorType === 'room') {
+        errorText = 'Unable to join specified room.';
+      }
+      if ("" !== errorText) {
+        $('#errormsg').text(errorText);
       }
 
       if (urlvars.room) {

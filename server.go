@@ -83,7 +83,7 @@ func main() {
 		if !found {
 			log.Println("Couldn't find room code ", roomCode)
 			// room is expired
-			so.Emit("error", "Unable to find the specified room")
+			so.Emit("error", "room")
 			return
 		}
 		found, playerInRoom := room.findPlayer(playerID)
@@ -116,7 +116,10 @@ func main() {
 		so.On("to player", func(to string, msgType string, data string) {
 			found, player := room.findPlayer(to)
 			if found {
+				log.Println("found player ", to)
 				player.socket.Emit("to player", playerID, msgType, data)
+			} else {
+				log.Println("unable to find player ", to)
 			}
 		})
 		so.On("player list", func() {

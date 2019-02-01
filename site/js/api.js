@@ -22,7 +22,8 @@ function Room() {
   var thisRoom = this;
   this.socket.on('set player info', function(info) {
     info = JSON.parse(info)
-    console.log(info)
+    console.log('received set player info:');
+    console.log(info);
     localStorage.setItem("playerID", info.ID);
     thisRoom.game.playerID = info.ID;
     thisRoom.game.isHost = info.Host;
@@ -34,10 +35,7 @@ function Room() {
     }
   });
   this.socket.on('sync var', function(varName, data) {
-    console.log(varName);
-    console.log(data);
-    console.log(thisRoom.game.gameVariables['script']);
-    console.log("sync var name " + varName + " data " + data);
+    console.log('received sync var msg ' + varName + ':' + data + ' current val:' + thisRoom.game.gameVariables['script']);
     if(varName == 'script' && (thisRoom.game.started == false || thisRoom.game.gameVariables['script'] != data)) {
       host = thisRoom.game.isHost;
       $.getScript(data).done(function(script, status){
@@ -61,11 +59,11 @@ function Room() {
   });
   // these 3 are identical, since they contain who sent the message
   this.socket.on('to everyone', function(from, msgType, msg){
+    console.log('received to everyone msg from ' + from + ': ' + msgType + ': ' + msg);
     thisRoom.game.event(from, msgType, msg);
   });
   this.socket.on('to host', function(from, msgType, msg){
-    console.log(msgType);
-    console.log(msg);
+    console.log('received to host msg from ' + from + ': ' + msgType + ': ' + msg);
     if(msgType == 'sync') {
       //thisRoom.game.syncVar(msg,thisRoom.game.gameVariables[msg]);
       thisRoom.socket.emit('sync var', msg, thisRoom.game.gameVariables[msg]);
@@ -74,7 +72,7 @@ function Room() {
     }
   });
   this.socket.on('to player', function(from, msgType, msg){
-    console.log(msg);
+    console.log('received to player msg from ' + from + ': ' + msgType + ': ' + msg);
     thisRoom.game.event(from, msgType, msg);
   });
 
@@ -83,6 +81,10 @@ function Room() {
     console.log(list);
     thisRoom.game.playerList = list;
   });
+
+  this.socket.on('error', function(code) {
+    window.location.href = '/?error=' + code;
+  })
 }
 
 Room.prototype.setGame = function (game) {
