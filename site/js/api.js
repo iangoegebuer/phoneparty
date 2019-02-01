@@ -3,6 +3,12 @@ function Room() {
   this.game.event = function(e,m) {
   };
 
+  // timer vars
+  this.timerActive = false;
+  this.timerFunc = null;
+  this.timerLeft = 0;
+
+  // room vars
   this.room = location.pathname.replace('/','');
   this.name = localStorage.getItem("name");
   console.log(this.name);
@@ -82,6 +88,49 @@ function Room() {
     thisRoom.game.playerList = list;
   });
 
+  this.socket.on('start timer', function(secondsStr) {
+    var seconds = parseInt(secondsStr);
+    if (thisRoom.timerActive) {
+      if (null !== thisRoom.timerFunc) {
+        clearInterval(thisRoom.timerFunc);
+      }
+    }
+    thisRoom.timerActive = true;
+    thisRoom.timerLeft = seconds;
+    thisRoom.timerFunc = setInterval(function () {
+      if (thisRoom.timerLeft > 0) {
+        thisRoom.timerLeft--;
+        thisRoom.game.event('', 'tick timer', thisRoom.timerLeft);
+      }
+    }, 1000);
+  });
+  this.socket.on('sync timer', function(secondsStr) {
+    var seconds = parseInt(secondsStr);
+    if (Math.abs(this.timerLeft - seconds) > 1) {
+      thisRoom.timerLeft = seconds;
+    }
+  });
+  this.socket.on('cancel timer', function() {
+    if (thisRoom.timerActive) {
+      if (null !== thisRoom.timerFunc) {
+        clearInterval(thisRoom.timerFunc);
+        thisRoom.timerFunc = null;
+      }
+      thisRoom.timerActive = false;
+      thisRoom.game.event('', 'cancel timer', '');
+    }
+  });
+  this.socket.on('finish timer', function() {
+    if (thisRoom.timerActive) {
+      if (null !== thisRoom.timerFunc) {
+        clearInterval(thisRoom.timerFunc);
+        thisRoom.timerFunc = null;
+      }
+      thisRoom.timerActive = false;
+      thisRoom.game.event('', 'finish timer', '');
+    }
+  });
+
   this.socket.on('error', function(code) {
     window.location.href = '/?error=' + code;
   })
@@ -106,4 +155,14 @@ Room.prototype.sendToEveryone = function (msgType, data) {
 // host only
 Room.prototype.setSyncVar = function (varName, data) {
   this.socket.emit('sync var', varName, data);
+}
+
+// host only
+Room.prototype.startTimer = function (seconds) {
+  this.socket.emit('start timer', seconds.toString());
+}
+
+// host only
+Room.prototype.cancelTimer = function () {
+  this.socket.emit('cancel timer');
 }

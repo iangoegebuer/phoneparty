@@ -28,7 +28,7 @@ console.log($('form'));
 
 $('form').submit(function(){
 
-  this.sendToEveryone("chat", gameRoom.name + ": " + $('#m').val());
+  this.gameRoom.sendToEveryone("chat", gameRoom.name + ": " + $('#m').val());
 
   $('#m').val('');
   return false;

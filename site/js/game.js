@@ -11,6 +11,8 @@ function gameBase(gameRoom) {
   }
   this.started = false;
 
+  // SPECIAL HANDLERS ARE
+  // sync, update sync var VARNAME, start timer, tick timer, cancel timer, finish timer
   this.event = function(from, type, info) {
     if (this.handlers.hasOwnProperty(type)) {
       this.handlers[type].call(this, from, info);
@@ -19,12 +21,6 @@ function gameBase(gameRoom) {
 
   this.setHandler = function(type, method) {
     this.handlers[type] = method;
-  }
-
-  this.syncVarChanged = function(name, value) {
-    console.log(this);
-    console.log("syncing " + name + " to " + value)
-    this.gameVariables[name] = value;
   }
 
   // I call syncvar straight from api.js
@@ -46,23 +42,12 @@ function gameBase(gameRoom) {
   this.setHandler('to player', this.toPlayer);
   //TODO: Auto sync everything in gameVariables
 
-
-  // Calls directly to the Room api
-  this.sendToPlayer = function (to, msgType, data) {
-    gameRoom.sendToPlayer(to, msgType, data);
-  }
-
-  this.sendToHost = function (msgType, data) {
-    gameRoom.sendToHost(msgType, data);
-  }
-
-  this.sendToEveryone = function (msgType, data) {
-    gameRoom.sendToEveryone(msgType, data);
-  }
-
+  // SPECIAL SYNC VARS
+  // script
   this.getSyncVar = function (varName) {
     return this.gameVariables[varName];
   }
+
   // host only
   this.setSyncVar = function (varName, data) {
     if (!this.isHost) {
@@ -72,5 +57,12 @@ function gameBase(gameRoom) {
     this.gameVariables[varName] = data;
     // send across the network
     gameRoom.setSyncVar(varName, data);
+  }
+  
+  // internal
+  this.syncVarChanged = function(name, value) {
+    console.log(this);
+    console.log("syncing " + name + " to " + value)
+    this.gameVariables[name] = value;
   }
 }

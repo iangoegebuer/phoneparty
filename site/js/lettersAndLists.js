@@ -58,7 +58,7 @@ function Game(gameRoom) {
   console.log($('form'));
 
   $('form').submit(function(){
-    this.sendToEveryone('chat', gameRoom.name + ": " + $('#m').val());
+    this.gameRoom.sendToEveryone('chat', gameRoom.name + ": " + $('#m').val());
 
     $('#m').val('');
     return false;
@@ -81,7 +81,7 @@ function Game(gameRoom) {
 
     // TODO: This will give players unique colors
     // Fix send to player
-    // this.sendToPlayer(from,'set color',this.players[playerInfo.id].playerIndex);
+    // this.gameRoom.sendToPlayer(from,'set color',this.players[playerInfo.id].playerIndex);
   });
 
   this.setHandler('start round', function(from,index) {
@@ -101,24 +101,26 @@ function Game(gameRoom) {
     $('#game').append(list);
   } else {
     $('#game').empty();
-    i = 60*2;
+    var seconds = 60*2;
     $('#game').append($('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(letter));
-    countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(i);
+    countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(seconds);
     $('#game').append(countHolder);
-    countdown = setInterval(function() {
-      if(--i == -1) {
-        clearInterval(countdown);
-        // TODO: Start scoring I have a whole voting system in mind
-        // Step 1 is tell each player to send over answers
-        // Step 2 display all ansers for question 1
-        // Step 3 people vote and decide if valid answer
-        // Step 4 record score and repeat 1-4 for all answer sets
-        // Step 5 display scores
-        thisGame.sendToEveryone('start round', "" + (Math.floor(Math.random() * QUESTION_SETS.length)))
-      } else {
-        countHolder.text(i);
-      }
-    },1000);
+    
+    this.gameRoom.startTimer(seconds);
+    this.setHandler('tick timer', function(_, time) {
+      countHolder.text(time);
+    });
+    this.setHandler('finish timer', function(_, __) {
+      // TODO: Start scoring I have a whole voting system in mind
+      // Step 1 is tell each player to send over answers
+      // Step 2 display all ansers for question 1
+      // Step 3 people vote and decide if valid answer
+      // Step 4 record score and repeat 1-4 for all answer sets
+      // Step 5 display scores
+      countHolder.text(0);
+      this.gameRoom.sendToEveryone('start round', "" + (Math.floor(Math.random() * QUESTION_SETS.length)))
+    });
+
   }
   });
 
@@ -139,7 +141,7 @@ function Game(gameRoom) {
 
     if(this.isHost == false) {
       console.log("Sending to host")
-      this.sendToHost("player join",JSON.stringify({id:this.gameRoom.playerID,name:this.gameRoom.name}));
+      this.gameRoom.sendToHost("player join",JSON.stringify({id:this.gameRoom.playerID,name:this.gameRoom.name}));
       $('#game').empty();
       $('#game').append($('<div>').prop({class:'display-2 text-center align-middle  align-self-center'}).text('Waiting on host...'))
     } else {
@@ -155,20 +157,20 @@ function Game(gameRoom) {
         letter = String.fromCharCode(Math.floor(Math.random() * 26)+65);
         console.log(letter);
         thisGame.setSyncVar('currentLetter', letter);
-        thisGame.sendToEveryone('display letter',letter);
+        thisGame.gameRoom.sendToEveryone('display letter',letter);
         $('#game').empty();
         $('#game').append($('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(letter));
         countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(5);
         $('#game').append(countHolder);
-        i = 5;
-        countdown = setInterval(function() {
-          if(--i == -1) {
-            clearInterval(countdown);
-            thisGame.sendToEveryone('start round', "" + (Math.floor(Math.random() * QUESTION_SETS.length)))
-          } else {
-            countHolder.text(i);
-          }
-        },1000);
+        
+        thisGame.gameRoom.startTimer(5);
+        thisGame.setHandler('tick timer', function(_, time) {
+          countHolder.text(time);
+        });
+        thisGame.setHandler('finish timer', function(_, __) {
+          countHolder.text(0);
+          thisGame.gameRoom.sendToEveryone('start round', "" + (Math.floor(Math.random() * QUESTION_SETS.length)));
+        });
       });
 
 

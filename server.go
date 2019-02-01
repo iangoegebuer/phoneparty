@@ -139,13 +139,14 @@ func main() {
 				return
 			}
 			secondsNum, err := strconv.Atoi(seconds)
-			if err == nil {
+			if err != nil {
 				log.Println("Unable to parse timer time:", seconds)
 				return
 			}
 			room.timerActive = true
 			room.timerStop = make(chan struct{})
 			room.timerSecondsLeft = secondsNum
+			server.BroadcastTo("chat"+roomCode, "start timer", seconds)
 			ticker := time.NewTicker(time.Second)
 			go func() {
 				for {
@@ -159,7 +160,7 @@ func main() {
 							ticker.Stop()
 							return
 						}
-						server.BroadcastTo("chat_"+roomCode, "sync timer", room.timerSecondsLeft)
+						server.BroadcastTo("chat_"+roomCode, "sync timer", string(room.timerSecondsLeft))
 						break
 					case <-room.timerStop:
 						log.Println("Timer cancelled in room ", room.entryCode)
@@ -170,7 +171,7 @@ func main() {
 				}
 			}()
 
-			server.BroadcastTo("chat_"+roomCode, "start timer", seconds)
+			server.BroadcastTo("chat_"+roomCode, "start timer", string(seconds))
 		})
 		// there is a message called "sync timer" that the server sends to clients to sync up their timers
 		// there is a message called "finish timer" that the server sends to clients when the timer ends
