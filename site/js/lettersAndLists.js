@@ -34,6 +34,8 @@ function PlayerObject(name,id,playerIndex) {
   this.name = name;
   this.id = id;
   this.playerIndex = playerIndex;
+  this.score = 0;
+  this.recentAnswers = [];
 }
 
 function Game(gameRoom) {
@@ -68,7 +70,7 @@ function Game(gameRoom) {
     // colorNum = parseInt(color);
     console.log(color)
     $('#header').removeClass("bg-secondary playerbg-1  playerbg-2  playerbg-3 playerbg-4 playerbg-5 playerbg-6 playerbg-7 playerbg-8 playerbg-9 playerbg-10")
-    $('#header').addClass("playerbg-" + color);
+    $('#header').addClass("playerbg-light-" + color);
   })
 
   this.setHandler('player join',function(from, data){
@@ -81,7 +83,7 @@ function Game(gameRoom) {
 
     // TODO: This will give players unique colors
     // Fix send to player
-    // this.sendToPlayer(from,'set color',this.players[playerInfo.id].playerIndex);
+    this.sendToPlayer(from,'set color',"" + this.players[playerInfo.id].playerIndex);
   });
 
   this.setHandler('start round', function(from,index) {
@@ -89,19 +91,20 @@ function Game(gameRoom) {
     idx = parseInt(index);
 
     $('#game').empty();
-    list = $('<div>');
+    list = $('<div>').prop({id:'list'});
     for(i=1;i <= 12;i++) {
 
-      list.append($('<label>').text("" + i + ". " + QUESTION_SETS[idx][i]).prop({for:'a'+i}));
+      list.append($('<label>').text("" + i + ". " + QUESTION_SETS[idx][i-1]).prop({for:'a'+i}));
 
       list.append($('<div>').prop({class:"input-group mb-3"}).append(
-        $('<input>').prop({id:"a"+i,autocomplete:'off',class:"form-control",type:"text"})));
+        $('<input>').prop({id:"a"+(i-1),autocomplete:'off',class:"form-control answers",prompt:""+(i-1),type:"text"})));
     }
 
     $('#game').append(list);
   } else {
     $('#game').empty();
     i = 60*2;
+    i= 15;
     $('#game').append($('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(letter));
     countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(i);
     $('#game').append(countHolder);
@@ -114,7 +117,7 @@ function Game(gameRoom) {
         // Step 3 people vote and decide if valid answer
         // Step 4 record score and repeat 1-4 for all answer sets
         // Step 5 display scores
-        thisGame.sendToEveryone('start round', "" + (Math.floor(Math.random() * QUESTION_SETS.length)))
+        thisGame.sendToEveryone('send answers', "");
       } else {
         countHolder.text(i);
       }
@@ -129,11 +132,44 @@ function Game(gameRoom) {
   }
   });
 
+  this.setHandler('player answers', function(from, answers) {
+    console.log(answers);
+    this.players[from].recentAnswers = JSON.parse(answers);
+  })
+
+  this.setHandler('display voting', function(from, answerIndex) {
+    console.log(this.players);
+  });
+
+
+  this.setHandler('send answers', function(from, letter) {
+    if(!this.isHost) {
+    $('#list').hide();
+    $('#game').append($('<div>').prop({class:'display-3 text-center align-middle flex-row align-self-center'}).text("Round over.\nGet ready to score"));
+    thisGame = this;
+    answers = {};
+    $('.answers').each(
+      function (){
+        // console.log($(this));
+        answers[$(this).attr('id')] = $(this).val();
+      }
+    );
+    console.log(answers);
+    this.sendToHost("player answers",JSON.stringify(answers));
+  } else {
+    $('#game').empty();
+    $('#game').append($('<div>').prop({class:'display-3 text-center align-middle flex-row align-self-center'}).text("Collecting answers"));
+    thisGame = this;
+    setTimeout(function() {
+      thisGame.sendToHost('display voting', '0');
+    },5000);
+  }
+  });
 
   this.setup = function() {
 
 
-    // $('#footer').empty();
+    $('#footer').empty();
     $('#header').empty();
     $('#header').text(this.gameRoom.name);
 
@@ -164,7 +200,9 @@ function Game(gameRoom) {
         countdown = setInterval(function() {
           if(--i == -1) {
             clearInterval(countdown);
-            thisGame.sendToEveryone('start round', "" + (Math.floor(Math.random() * QUESTION_SETS.length)))
+
+            thisGame.setSyncVar('currentList', "" + (Math.floor(Math.random() * QUESTION_SETS.length)));
+            thisGame.sendToEveryone('start round', thisGame.getSyncVar('currentList'));
           } else {
             countHolder.text(i);
           }
