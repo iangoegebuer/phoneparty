@@ -108,7 +108,7 @@ function Game(gameRoom) {
     $('#game').append($('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(letter));
     countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(seconds);
     $('#game').append(countHolder);
-    
+
     this.gameRoom.startTimer(seconds);
     this.setHandler('tick timer', function(_, time) {
       countHolder.text(time);
@@ -149,10 +149,45 @@ function Game(gameRoom) {
     // submit button in footer
     // Display for host is each answer for the round with an up/down icon colored for the player that voted that way
     console.log(this.players);
+    answers = {};
+    players = this.getPlayerList();
+    $('#game').empty();
     for (player in this.players) {
-      console.log(player);
+      // console.log(player);
+      // console.log(this.players);
+//       <div class="input-group mb-3">
+//   <div class="input-group-prepend">
+//     <button class="btn btn-outline-secondary" type="button">Button</button>
+//     <button class="btn btn-outline-secondary" type="button">Button</button>
+//   </div>
+//   <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon1">
+// </div>
+      console.log(this.players[player].recentAnswers['a'+answerIndex]);
+      answers[player] = this.players[player].recentAnswers['a'+answerIndex];
+      likesCol = $('<div>').prop({class:'col pt-1'});
+      $('#game').append($('<div>').prop({class:'rounded border container'}).append($('<div>').prop({class:'row'}).append(likesCol).append($('<div>').prop({class:'col-6 pt-1'}).append(answers[player]))));
+      for (p in this.players) {
+        likesCol.append($('<i>').prop({class:'material-icons playercolor-'+this.players[p].playerIndex,id:p}).text('thumbs_up_down'));
+      }
+
     }
+    console.log(answers);
+
   });
+
+  this.getPlayerList = function() {
+    players = [];
+    for (player in this.players) {
+      players.push(player);
+    }
+  }
+
+  this.clearTimers = function() {
+    thisGame.setHandler('tick timer', function(_, time) {
+    });
+    thisGame.setHandler('finish timer', function(_, __) {
+    });
+  }
 
 
   this.setHandler('send answers', function(from, letter) {
@@ -209,7 +244,7 @@ function Game(gameRoom) {
         $('#game').append($('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(letter));
         countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'}).text(5);
         $('#game').append(countHolder);
-        
+
         thisGame.gameRoom.startTimer(5);
         thisGame.setHandler('tick timer', function(_, time) {
           countHolder.text(time);
