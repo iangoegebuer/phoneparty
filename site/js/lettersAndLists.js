@@ -134,11 +134,22 @@ function Game(gameRoom) {
 
   this.setHandler('player answers', function(from, answers) {
     console.log(answers);
+    console.log(this.players)
+    console.log(from)
     this.players[from].recentAnswers = JSON.parse(answers);
   })
 
   this.setHandler('display voting', function(from, answerIndex) {
+    // TODO: After each voting ends, call again with the next index until we're done
+    // Display for players is https://getbootstrap.com/docs/4.0/components/buttons/#checkbox-and-radio-buttons
+    // with the text next to it and only 2 buttons thumbs up and down (already included material ui icons)
+    // for each ite,
+    // submit button in footer
+    // Display for host is each answer for the round with an up/down icon colored for the player that voted that way
     console.log(this.players);
+    for (player in this.players) {
+      console.log(player);
+    }
   });
 
 
