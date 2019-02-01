@@ -23,25 +23,6 @@ function gameBase(gameRoom) {
     this.handlers[type] = method;
   }
 
-  // I call syncvar straight from api.js
-  //this.setHandler('sync var', this.syncVar);
-  this.toHost = function(data) {
-    console.log(data);
-    if('data' == 'script sync')
-      thisGame.gameRoom.socket.emit('sync var','script',this.gameVariables['script']);
-  }
-
-  this.toPlayer = function(data) {
-    console.log(data);
-    if('data' == 'script sync')
-      thisGame.gameRoom.socket.emit('sync var','script',this.gameVariables['script']);
-  }
-
-  //this.setHandler('sync var', this.syncVar);
-  this.setHandler('to host', this.toHost);
-  this.setHandler('to player', this.toPlayer);
-  //TODO: Auto sync everything in gameVariables
-
   // SPECIAL SYNC VARS
   // script
   this.getSyncVar = function (varName) {
@@ -68,5 +49,7 @@ function gameBase(gameRoom) {
     console.log(this);
     console.log("syncing " + name + " to " + value)
     this.gameVariables[name] = value;
+    // You can subscribe to a handler if you want
+    this.event('', 'update sync var ' + name, value);
   }
 }
