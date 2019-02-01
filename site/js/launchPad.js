@@ -74,16 +74,15 @@ this.setup = function() {
 
           startButton.click(function() {
             console.log(thisGame.selectGroup.val());
-            thisGame.gameRoom.socket.emit('sync var','script',thisGame.selectGroup.val());
+            thisGame.setSyncVar('script', thisGame.selectGroup.val());
           });
 
         }
 
         this.form.submit(function(){
 
-          thisGame.gameRoom.socket.emit('to everyone', 'chat', thisGame.gameRoom.name +
+          thisGame.gameRoom.sendToEveryone('chat', thisGame.gameRoom.name +
           ": " + thisGame.messageBox.val());
-          // thisGame.gameRoom.socket.emit('to everyone', 'chat', gameRoom.name + ": " + $('#m').val());
 
           thisGame.messageBox.val('');
           return false;

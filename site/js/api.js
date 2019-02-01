@@ -42,6 +42,7 @@ function Room() {
   });
   this.socket.on('sync var', function(varName, data) {
     console.log('received sync var msg ' + varName + ':' + data + ' current val:' + thisRoom.game.gameVariables['script']);
+    data = JSON.parse(data);
     if(varName == 'script' && (thisRoom.game.started == false || thisRoom.game.gameVariables['script'] != data)) {
       host = thisRoom.game.isHost;
       $.getScript(data).done(function(script, status){
@@ -58,28 +59,28 @@ function Room() {
       });
     }
     // only change the sync var for non-host
-    if (!thisRoom.game.isHost) {
-
-    }
+    //if (!thisRoom.game.isHost) {
+    //  return;
+    //}
     thisRoom.game.syncVarChanged(varName, data);
   });
   // these 3 are identical, since they contain who sent the message
   this.socket.on('to everyone', function(from, msgType, msg){
     console.log('received to everyone msg from ' + from + ': ' + msgType + ': ' + msg);
-    thisRoom.game.event(from, msgType, msg);
+    thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
   this.socket.on('to host', function(from, msgType, msg){
     console.log('received to host msg from ' + from + ': ' + msgType + ': ' + msg);
     if(msgType == 'sync') {
       //thisRoom.game.syncVar(msg,thisRoom.game.gameVariables[msg]);
-      thisRoom.socket.emit('sync var', msg, thisRoom.game.gameVariables[msg]);
+      thisRoom.socket.emit('sync var', msg, JSON.stringify(thisRoom.game.gameVariables[msg]));
     } else {
-      thisRoom.game.event(from, msgType, msg);
+      thisRoom.game.event(from, msgType, JSON.parse(msg));
     }
   });
   this.socket.on('to player', function(from, msgType, msg){
     console.log('received to player msg from ' + from + ': ' + msgType + ': ' + msg);
-    thisRoom.game.event(from, msgType, msg);
+    thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
 
   this.socket.on('player list', function(list) {
@@ -141,20 +142,20 @@ Room.prototype.setGame = function (game) {
 }
 
 Room.prototype.sendToPlayer = function (to, msgType, data) {
-  this.socket.emit("to player", to, msgType, data);
+  this.socket.emit("to player", to, msgType, JSON.stringify(data));
 }
 
 Room.prototype.sendToHost = function (msgType, data) {
-  this.socket.emit("to host", msgType, data);
+  this.socket.emit("to host", msgType, JSON.stringify(data));
 }
 
 Room.prototype.sendToEveryone = function (msgType, data) {
-  this.socket.emit("to everyone", msgType, data);
+  this.socket.emit("to everyone", msgType, JSON.stringify(data));
 }
 
 // host only
 Room.prototype.setSyncVar = function (varName, data) {
-  this.socket.emit('sync var', varName, data);
+  this.socket.emit('sync var', varName, JSON.stringify(data));
 }
 
 // host only

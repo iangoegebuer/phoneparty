@@ -54,9 +54,13 @@ function gameBase(gameRoom) {
       console.log("Cannot set sync vars unless you are the host");
       return;
     }
-    this.gameVariables[varName] = data;
+    // TODO make script its own part of the api
+    // don't update the game var just yet if its script
+    if (varName !== 'script') {
+      this.gameVariables[varName] = data;
+    }
     // send across the network
-    gameRoom.setSyncVar(varName, data);
+    this.gameRoom.setSyncVar(varName, data);
   }
   
   // internal
