@@ -10,8 +10,6 @@ function Game(gameRoom) {
 
   gameBase.call(this,gameRoom);
 
-  this.gameVariables['script'] = 'site/js/launchPad.js';
-
   this.setHandler('chat',function(from, msg) {
     this.messages.append($('<li>').text(msg));
   });
@@ -74,7 +72,7 @@ this.setup = function() {
 
           startButton.click(function() {
             console.log(thisGame.selectGroup.val());
-            thisGame.setSyncVar('script', thisGame.selectGroup.val());
+            thisGame.gameRoom.setScript(thisGame.selectGroup.val());
           });
 
         }

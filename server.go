@@ -18,6 +18,7 @@ import (
 // Room : Data structure for rooms
 type Room struct {
 	entryCode        string
+	scriptURL        string
 	members          []*Player // the first player is always the owner
 	expires          time.Time
 	timerActive      bool
@@ -70,6 +71,10 @@ func main() {
 		var postValues = so.Request().Form
 		var roomCode = postValues.Get("room")
 		var name = postValues.Get("name")
+		if name == "null" || name == "" {
+			log.Println("Null name joined room. It will redirect automatically")
+			return
+		}
 		log.Println("Room code: ", "chat_"+roomCode)
 		so.Join("chat_" + roomCode)
 		var playerID = postValues.Get("playerID")
@@ -101,9 +106,10 @@ func main() {
 		}
 		bytes, _ := json.Marshal(playerInRoom)
 		so.Emit("set player info", string(bytes))
+		so.Emit("set script", room.scriptURL)
 		log.Println("Current player list in room ", room.entryCode, " : ", room.listPlayers())
+		server.BroadcastTo("chat_"+roomCode, "update player list", room.listPlayers())
 
-		// from is a player ID
 		so.On("to everyone", func(msgType string, data string) {
 			server.BroadcastTo("chat_"+roomCode, "to everyone", playerID, msgType, data)
 		})
@@ -122,15 +128,29 @@ func main() {
 				log.Println("unable to find player ", to)
 			}
 		})
-		so.On("player list", func() {
-			so.Emit("player list", room.listPlayers())
-		})
 		so.On("sync var", func(varName string, data string) {
 			// only sync vars given by the host
 			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
 			server.BroadcastTo("chat_"+roomCode, "sync var", varName, data)
+		})
+		so.On("update all sync vars", func(data string) {
+			// only let the host update all sync vars
+			if playerInRoom.ID != room.members[0].ID {
+				return
+			}
+			server.BroadcastTo("chat_"+roomCode, "update all sync vars", data)
+		})
+		so.On("set script", func(newScript string) {
+			// only let the host change the script
+			if playerInRoom.ID != room.members[0].ID {
+				return
+			}
+			if room.scriptURL != newScript {
+				room.scriptURL = newScript
+				server.BroadcastTo("chat_"+roomCode, "set script", newScript)
+			}
 		})
 
 		so.On("start timer", func(seconds string) {
@@ -207,7 +227,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := &Room{entryCode: randStr, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
+		room := &Room{entryCode: randStr, scriptURL: "site/js/launchPad.js", timerActive: false, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)

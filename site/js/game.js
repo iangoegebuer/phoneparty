@@ -6,13 +6,19 @@ function gameBase(gameRoom) {
   this.playerID = null;
   this.isHost = false;
   this.playerList = [];
+  // Transfer vars to a new game, when switching games
+  this.copyFrom = function (oldGame) {
+    this.playerID = oldGame.playerID;
+    this.isHost = oldGame.isHost;
+    this.playerList = oldGame.playerList;
+  }
   this.setup = function () {
     // Override this for setup functionality
   }
   this.started = false;
 
   // SPECIAL HANDLERS ARE
-  // sync, update sync var VARNAME, start timer, tick timer, cancel timer, finish timer
+  // sync, update sync var VARNAME, update player list, start timer, tick timer, cancel timer, finish timer
   this.event = function(from, type, info) {
     if (this.handlers.hasOwnProperty(type)) {
       this.handlers[type].call(this, from, info);

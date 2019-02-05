@@ -8,6 +8,9 @@ function Room() {
   this.timerFunc = null;
   this.timerLeft = 0;
 
+  // which script
+  this.scriptURL = ''
+
   // room vars
   this.room = location.pathname.replace('/','');
   this.name = localStorage.getItem("name");
@@ -33,36 +36,48 @@ function Room() {
     localStorage.setItem("playerID", info.ID);
     thisRoom.game.playerID = info.ID;
     thisRoom.game.isHost = info.Host;
-    if(thisRoom.game.isHost) {
-      thisRoom.game.setup();
-    } else {
-      console.log('Force sync');
-      thisRoom.socket.emit('to host','sync','script');
-    }
   });
   this.socket.on('sync var', function(varName, data) {
     console.log('received sync var msg ' + varName + ':' + data + ' current val:' + thisRoom.game.gameVariables['script']);
     data = JSON.parse(data);
-    if(varName == 'script' && (thisRoom.game.started == false || thisRoom.game.gameVariables['script'] != data)) {
+    // only change the sync var for non-host
+    if (thisRoom.game.isHost) {
+      return;
+    }
+    thisRoom.game.syncVarChanged(varName, data);
+  });
+  this.socket.on('set script', function(newScriptURL) {
+    if(thisRoom.game.started == false || thisRoom.scriptURL != newScriptURL) {
       host = thisRoom.game.isHost;
-      $.getScript(data).done(function(script, status){
+      $.getScript(newScriptURL).done(function(script, status){
         $('#game').empty();
-        console.log(status);
-        thisRoom.setGame(new Game(gameRoom));
-        thisRoom.game.gameVariables['script'] = data;
-        thisRoom.game.isHost = host;
+        console.log("Get script status: ", status);
+        var oldGame = thisRoom.game;
+        thisRoom.setGame(new Game(thisRoom));
+        thisRoom.game.copyFrom(oldGame);
+        thisRoom.scriptURL = newScriptURL;
         thisRoom.game.setup();
       }).fail(function( jqxhr, settings, exception ) {
         console.log(jqxhr);
         console.log(settings);
         console.log(exception);
       });
+    } else {
+      console.log("Could not change script. Game started:" + thisRoom.game.started + " current script:" + thisRoom.scriptURL + " new script:" + thisRoom.newScriptURL)
     }
-    // only change the sync var for non-host
-    //if (!thisRoom.game.isHost) {
-    //  return;
-    //}
-    thisRoom.game.syncVarChanged(varName, data);
+  });
+  this.socket.on('update all sync vars', function(data) {
+    // only update for non-host
+    if (thisRoom.game.isHost) {
+      return;
+    }
+    console.log('received sync all vars msg ' + data);
+    data = JSON.parse(data);
+    for (var key in data) {
+      if (data.hasOwnProperty(key)) {
+        thisRoom.game.syncVarChanged(key, data[key])
+      }
+    }
   });
   // these 3 are identical, since they contain who sent the message
   this.socket.on('to everyone', function(from, msgType, msg){
@@ -71,22 +86,21 @@ function Room() {
   });
   this.socket.on('to host', function(from, msgType, msg){
     console.log('received to host msg from ' + from + ': ' + msgType + ': ' + msg);
-    if(msgType == 'sync') {
-      //thisRoom.game.syncVar(msg,thisRoom.game.gameVariables[msg]);
-      thisRoom.socket.emit('sync var', msg, JSON.stringify(thisRoom.game.gameVariables[msg]));
-    } else {
-      thisRoom.game.event(from, msgType, JSON.parse(msg));
-    }
+    thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
   this.socket.on('to player', function(from, msgType, msg){
     console.log('received to player msg from ' + from + ': ' + msgType + ': ' + msg);
     thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
 
-  this.socket.on('player list', function(list) {
+  this.socket.on('update player list', function(list) {
     list = JSON.parse(list)
     console.log(list);
     thisRoom.game.playerList = list;
+    thisRoom.game.event('', 'update player list', list)
+    if (thisRoom.game.isHost) {
+      thisRoom.socket.emit('update all sync vars', JSON.stringify(thisRoom.game.gameVariables))
+    }
   });
 
   this.socket.on('start timer', function(secondsStr) {
@@ -166,4 +180,9 @@ Room.prototype.startTimer = function (seconds) {
 // host only
 Room.prototype.cancelTimer = function () {
   this.socket.emit('cancel timer');
+}
+
+// host only
+Room.prototype.setScript = function (newScriptURL) {
+  this.socket.emit('set script', newScriptURL);
 }
