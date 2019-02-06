@@ -236,6 +236,7 @@ function Game(gameRoom) {
       thisGame = this
 
       startButton.click(function() {
+        thisGame.gameRoom.setRoomClosed();
         letter = String.fromCharCode(Math.floor(Math.random() * 26)+65);
         console.log(letter);
         thisGame.setSyncVar('currentLetter', letter);

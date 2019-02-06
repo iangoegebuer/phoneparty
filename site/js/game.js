@@ -5,6 +5,7 @@ function gameBase(gameRoom) {
   this.handlers = {};
   this.playerID = null;
   this.isHost = false;
+  this.isAudience = false;
   this.playerList = [];
   // Transfer vars to a new game, when switching games
   this.copyFrom = function (oldGame) {

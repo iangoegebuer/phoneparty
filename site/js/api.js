@@ -36,6 +36,7 @@ function Room() {
     localStorage.setItem("playerID", info.ID);
     thisRoom.game.playerID = info.ID;
     thisRoom.game.isHost = info.Host;
+    thisRoom.game.isAudience = info.isAudience;
   });
   this.socket.on('sync var', function(varName, data) {
     console.log('received sync var msg ' + varName + ':' + data + ' current val:' + thisRoom.game.gameVariables['script']);
@@ -185,4 +186,19 @@ Room.prototype.cancelTimer = function () {
 // host only
 Room.prototype.setScript = function (newScriptURL) {
   this.socket.emit('set script', newScriptURL);
+}
+
+// host only
+Room.prototype.setRoomOpen = function () {
+  this.socket.emit('set room mode', "OPEN");
+}
+
+// host only
+Room.prototype.setRoomAudience = function () {
+  this.socket.emit('set room mode', "AUDIENCE");
+}
+
+// host only
+Room.prototype.setRoomClosed = function () {
+  this.socket.emit('set room mode', "CLOSED");
 }

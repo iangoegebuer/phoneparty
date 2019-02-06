@@ -15,10 +15,23 @@ import (
 	socketio "github.com/googollee/go-socket.io"
 )
 
+// EntryMode determines how new players are added to the room
+type EntryMode int
+
+const (
+	// OPEN new players are accepted
+	OPEN EntryMode = 0
+	// AUDIENCE new players are added as audience
+	AUDIENCE EntryMode = 1
+	// CLOSED new players are not accepted
+	CLOSED EntryMode = 2
+)
+
 // Room : Data structure for rooms
 type Room struct {
 	entryCode        string
 	scriptURL        string
+	playerEntryMode  EntryMode
 	members          []*Player // the first player is always the owner
 	expires          time.Time
 	timerActive      bool
@@ -42,10 +55,11 @@ func (room Room) listPlayers() string {
 
 // Player : Data structure for players
 type Player struct {
-	Name   string
-	ID     string
-	Host   bool
-	socket socketio.Socket
+	Name     string
+	ID       string
+	Host     bool
+	Audience bool
+	socket   socketio.Socket
 }
 
 var rooms []*Room
@@ -97,7 +111,16 @@ func main() {
 			if len(room.members) == 0 {
 				host = true
 			}
-			playerInRoom = &Player{Name: name, ID: playerID, Host: host, socket: so}
+			audience := false
+			if room.playerEntryMode == CLOSED {
+				log.Println("Prevent entry to closed room ", roomCode)
+				// room is expired
+				so.Emit("error", "closed")
+				return
+			} else if room.playerEntryMode == AUDIENCE {
+				audience = true
+			}
+			playerInRoom = &Player{Name: name, ID: playerID, Host: host, Audience: audience, socket: so}
 			room.members = append(room.members, playerInRoom)
 		} else {
 			// rename and use the new socket i guess?
@@ -150,6 +173,21 @@ func main() {
 			if room.scriptURL != newScript {
 				room.scriptURL = newScript
 				server.BroadcastTo("chat_"+roomCode, "set script", newScript)
+			}
+		})
+		so.On("set room mode", func(modeStr string) {
+			// only let the host change the entry mode
+			if playerInRoom.ID != room.members[0].ID {
+				return
+			}
+			if modeStr == "OPEN" {
+				room.playerEntryMode = OPEN
+			} else if modeStr == "AUDIENCE" {
+				room.playerEntryMode = AUDIENCE
+			} else if modeStr == "CLOSED" {
+				room.playerEntryMode = CLOSED
+			} else {
+				log.Println("Unknown room mode " + modeStr)
 			}
 		})
 
@@ -227,7 +265,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := &Room{entryCode: randStr, scriptURL: "site/js/launchPad.js", timerActive: false, expires: time.Now().Add(time.Hour * 2)}
+		room := &Room{entryCode: randStr, scriptURL: "site/js/launchPad.js", playerEntryMode: OPEN, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)

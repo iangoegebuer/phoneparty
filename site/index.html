@@ -24,6 +24,11 @@
         errorText = 'Please enter a name.';
       } else if (errorType === 'room') {
         errorText = 'Unable to join specified room.';
+      } else if (errorType === 'closed') {
+        errorText = 'The specified room is closed to new players.';
+      } else if (errorType !== null) {
+        // catchall for errors
+        errorText = errorType;
       }
       if ("" !== errorText) {
         $('#errormsg').text(errorText);
