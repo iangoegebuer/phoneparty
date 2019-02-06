@@ -1,7 +1,8 @@
 
 GAMES_LIST = [
   {path:'site/js/launchPad.js',name:'Launch Pad'},
-  {path:'site/js/lettersAndLists.js',name:'Letters and Lists'}
+  {path:'site/js/lettersAndLists.js',name:'Letters and Lists'},
+  {path:'https://cdn.jsdelivr.net/gh/ChrisLHall/PhonePartyCarts/lettersAndLists.js', name:"GitHub letters and lists"},
 ]
 
 
