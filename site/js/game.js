@@ -59,4 +59,13 @@ function gameBase(gameRoom) {
     // You can subscribe to a handler if you want
     this.event('', 'update sync var ' + name, value);
   }
+
+  this.playerByID = function (id) {
+    for (var i = 0; i < this.playerList.length; i++) {
+      if (this.playerList[i].ID === id) {
+        return this.playerList[i];
+      }
+    }
+    return null;
+  }
 }

@@ -67,10 +67,6 @@ function Game(gameRoom) {
     else
        $('#messages').append($('<li>').text(msg));
   });
-  this.setHandler('set playerID',function(id) {
-    console.log(id);
-    $('#nameheader').text('Name: ' + this.gameRoom.name + ' (playerID: ' + this.gameRoom.playerID + ')');
-  });
 
   console.log($('form'));
   var thisGame = this;
@@ -83,23 +79,29 @@ function Game(gameRoom) {
 
   this.setHandler('set color', function(from, color){
     // colorNum = parseInt(color);
-    console.log(color)
+    console.log("color " + color);
     $('#header').removeClass("bg-secondary playerbg-1  playerbg-2  playerbg-3 playerbg-4 playerbg-5 playerbg-6 playerbg-7 playerbg-8 playerbg-9 playerbg-10")
     $('#header').addClass("playerbg-light-" + color);
   })
 
-  this.setHandler('player join',function(from, data){
-    playerInfo = JSON.parse(data);
-    console.log(playerInfo);
-    console.log(from);
-    if(!this.players.hasOwnProperty(playerInfo.id)){
-      this.players[playerInfo.id] = new PlayerObject(playerInfo.name, playerInfo.id,Object.keys(this.players).length+1);
-    }
+  this.setHandler('update player list', this.refreshPlayers);
 
-    // TODO: This will give players unique colors
-    // Fix send to player
-    this.gameRoom.sendToPlayer(from,'set color',"" + this.players[playerInfo.id].playerIndex);
-  });
+  this.refreshPlayers = function(_, __) {
+    for (var i = 0; i < this.playerList.length; i++) {
+      console.log("Updated player list...");
+      console.log(this.playerList);
+      var playerInfo = this.playerList[i];
+      if (!this.players.hasOwnProperty(playerInfo.ID)) {
+        console.log("new player")
+        console.log(playerInfo)
+        this.players[playerInfo.ID] = new PlayerObject(playerInfo.Name, playerInfo.ID, i + 1);
+        
+        // TODO: This will give players unique colors
+        // Fix send to player
+        this.gameRoom.sendToPlayer(playerInfo.ID,'set color', this.players[playerInfo.ID].playerIndex);
+      }
+    }
+  };
 
   this.setHandler('start round', function(from,index) {
     if(!this.isHost) {
@@ -153,7 +155,7 @@ function Game(gameRoom) {
     console.log(answers);
     console.log(this.players)
     console.log(from)
-    this.players[from].recentAnswers = JSON.parse(answers);
+    this.players[from].recentAnswers = answers;
   })
 
   this.setHandler('display voting', function(from, answerIndex) {
@@ -218,7 +220,7 @@ function Game(gameRoom) {
       }
     );
     console.log(answers);
-    this.gameRoom.sendToHost("player answers",JSON.stringify(answers));
+    this.gameRoom.sendToHost("player answers", answers);
   } else {
     $('#game').empty();
     $('#game').append($('<div>').prop({class:'display-3 text-center align-middle flex-row align-self-center'}).text("Collecting answers"));
@@ -238,7 +240,7 @@ function Game(gameRoom) {
 
     if(this.isHost == false) {
       console.log("Sending to host")
-      this.gameRoom.sendToHost("player join",JSON.stringify({id:this.gameRoom.playerID,name:this.gameRoom.name}));
+      //this.gameRoom.sendToHost("player join", {id:this.gameRoom.playerID,name:this.gameRoom.name});
       $('#game').empty();
       $('#game').append($('<div>').prop({class:'display-2 text-center align-middle  align-self-center'}).text('Waiting on host...'))
     } else {
@@ -272,7 +274,7 @@ function Game(gameRoom) {
         });
       });
 
-
+      this.refreshPlayers();
     }
 
     this.started = true;
