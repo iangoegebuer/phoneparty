@@ -65,8 +65,8 @@ function Room() {
         console.log(exception);
       });
       */
-      $('#game').empty();
-      $('#game').load(newScriptURL, function (arg1, arg2) {
+      $('#gamecode').empty();
+      $('#gamecode').load(newScriptURL, function (arg1, arg2) {
         console.log("Loaded the game i guess? args:");
         console.log(arg1);
         console.log(arg2);
