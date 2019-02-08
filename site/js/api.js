@@ -65,7 +65,7 @@ function Room() {
         console.log(exception);
       });
       */
-      $('#game').empty()
+      $('#game').empty();
       $('#game').load(newScriptURL, function (arg1, arg2) {
         console.log("Loaded the game i guess? args:");
         console.log(arg1);
@@ -75,7 +75,7 @@ function Room() {
         thisRoom.game.copyFrom(oldGame);
         thisRoom.scriptURL = newScriptURL;
         thisRoom.game.setup();
-      })
+      });
     } else {
       console.log("Could not change script. Game started:" + thisRoom.game.started + " current script:" + thisRoom.scriptURL + " new script:" + thisRoom.newScriptURL)
     }

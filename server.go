@@ -265,7 +265,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := &Room{entryCode: randStr, scriptURL: "site/js/launchPad.html", playerEntryMode: OPEN, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
+		room := &Room{entryCode: randStr, scriptURL: "site/carts/launchPad.html", playerEntryMode: OPEN, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)
