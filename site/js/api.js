@@ -50,6 +50,7 @@ function Room() {
   this.socket.on('set script', function(newScriptURL) {
     if(thisRoom.game.started == false || thisRoom.scriptURL != newScriptURL) {
       host = thisRoom.game.isHost;
+      /*
       $.getScript(newScriptURL).done(function(script, status){
         $('#game').empty();
         console.log("Get script status: ", status);
@@ -63,6 +64,18 @@ function Room() {
         console.log(settings);
         console.log(exception);
       });
+      */
+      $('#game').empty()
+      $('#game').load(newScriptURL, function (arg1, arg2) {
+        console.log("Loaded the game i guess? args:");
+        console.log(arg1);
+        console.log(arg2);
+        var oldGame = thisRoom.game;
+        thisRoom.setGame(new Game(thisRoom));
+        thisRoom.game.copyFrom(oldGame);
+        thisRoom.scriptURL = newScriptURL;
+        thisRoom.game.setup();
+      })
     } else {
       console.log("Could not change script. Game started:" + thisRoom.game.started + " current script:" + thisRoom.scriptURL + " new script:" + thisRoom.newScriptURL)
     }

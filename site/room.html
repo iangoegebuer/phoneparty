@@ -26,7 +26,15 @@
     <script>
     var gameRoom = new Room();
     window.gameRoom = gameRoom;
-
+    /*
+    $('#game').load('site/js/launchPad.html', function (arg1, arg2) {
+      console.log("Loaded the game i guess? args:");
+      console.log(arg1);
+      console.log(arg2);
+      gameRoom.setGame(new Game(gameRoom));
+    })
+    */
+    /*
     $.getScript('site/js/launchPad.js').done(function(script, status){
       console.log(status);
       gameRoom.setGame(new Game(gameRoom));
@@ -35,6 +43,7 @@
       console.log(settings);
       console.log(exception);
     });
+    */
 
 
 
