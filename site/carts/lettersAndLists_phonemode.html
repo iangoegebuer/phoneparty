@@ -1,6 +1,6 @@
 <div id='gamecontainer' class='align-items-middle'>
   <div id='bigtext' class='display-2 text-center align-middle  align-self-center'></div>
-  
+  <div id='qlist' hidden></div>
 </div>
 <script>
 QUESTION_SETS = [
@@ -85,7 +85,7 @@ function Game(gameRoom) {
     // colorNum = parseInt(color);
     console.log("color " + color);
     $('#header').removeClass("bg-secondary playerbg-1  playerbg-2  playerbg-3 playerbg-4 playerbg-5 playerbg-6 playerbg-7 playerbg-8 playerbg-9 playerbg-10")
-    $('#header').addClass("playerbg-light-" + color);
+    $('#header').addClass("playerbg-light-" + (color + 1));
   })
 
   this.refreshPlayers = function(_, __) {
@@ -96,7 +96,7 @@ function Game(gameRoom) {
       if (!this.players.hasOwnProperty(playerInfo.ID)) {
         console.log("new player")
         console.log(playerInfo)
-        this.players[playerInfo.ID] = new PlayerObject(playerInfo.Name, playerInfo.ID, i + 1);
+        this.players[playerInfo.ID] = new PlayerObject(playerInfo.Name, playerInfo.ID, i);
         
         // TODO: This will give players unique colors
         // Fix send to player
@@ -108,40 +108,39 @@ function Game(gameRoom) {
   this.setHandler('update player list', this.refreshPlayers);
 
   this.setHandler('start round', function(from,index) {
-    if(!this.isHost) {
-      idx = parseInt(index);
+    var list = $('#qlist');
+    list.empty();
+    list.show();
+    for(i=1;i <= 12;i++) {
 
-      list = $('<div>').prop({id:'list'});
-      for(i=1;i <= 12;i++) {
+      list.append($('<label>').text("" + i + ". " + QUESTION_SETS[index][i-1]).prop({for:'a'+i}));
 
-        list.append($('<label>').text("" + i + ". " + QUESTION_SETS[idx][i-1]).prop({for:'a'+i}));
-
-        list.append($('<div>').prop({class:"input-group mb-3"}).append(
-          $('<input>').prop({id:"a"+(i-1),autocomplete:'off',class:"form-control answers",prompt:""+(i-1),type:"text"})));
-      }
-
-      $('#gamecontainer').append(list);
-    } else {
-      var seconds = 60*2;
-      seconds = 15;
-      $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + seconds);
-
-      this.gameRoom.startTimer(seconds);
-      this.setHandler('tick timer', function(_, time) {
-        $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + time);
-      });
-      this.setHandler('finish timer', function(_, __) {
-        // TODO: Start scoring I have a whole voting system in mind
-        // Step 1 is tell each player to send over answers
-        // Step 2 display all ansers for question 1
-        // Step 3 people vote and decide if valid answer
-        // Step 4 record score and repeat 1-4 for all answer sets
-        // Step 5 display scores
-        $('#bigtext').text('Letter: ' + letter + '\nTime\'s up');
-        this.gameRoom.sendToEveryone('send answers', '')
-      });
-
+      list.append($('<div>').prop({class:"input-group mb-3"}).append(
+        $('<input>').prop({id:"a"+(i-1),autocomplete:'off',class:"form-control answers",prompt:""+(i-1),type:"text"})));
     }
+
+    var seconds = 60*2;
+    seconds = 15;
+    $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + seconds);
+    if (this.isHost) {
+      this.gameRoom.startTimer(seconds);
+    }
+    this.setHandler('tick timer', function(_, time) {
+      $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + time);
+    });
+    this.setHandler('finish timer', function(_, __) {
+      // TODO: Start scoring I have a whole voting system in mind
+      // Step 1 is tell each player to send over answers
+      // Step 2 display all ansers for question 1
+      // Step 3 people vote and decide if valid answer
+      // Step 4 record score and repeat 1-4 for all answer sets
+      // Step 5 display scores
+      $('#bigtext').text('Letter: ' + letter + '\nTime\'s up');
+      if (this.isHost) {
+        this.gameRoom.sendToEveryone('send answers', '');
+      }
+    });
+
   });
 
   this.setHandler('player answers', function(from, answers) {
@@ -176,7 +175,7 @@ function Game(gameRoom) {
       likesCol = $('<div>').prop({class:'col pt-1'});
       $('#gamecontainer').append($('<div>').prop({class:'rounded border container'}).append($('<div>').prop({class:'row'}).append(likesCol).append($('<div>').prop({class:'col-6 pt-1'}).append(answers[player]))));
       for (p in this.players) {
-        likesCol.append($('<i>').prop({class:'material-icons playercolor-'+this.players[p].playerIndex,id:p}).text('thumbs_up_down'));
+        likesCol.append($('<i>').prop({class:'material-icons playercolor-'+(this.players[p].playerIndex + 1),id:p}).text('thumbs_up_down'));
       }
 
     }
@@ -223,19 +222,12 @@ function Game(gameRoom) {
   });
 
   this.setHandler('start round countdown', function (_, __) {
-    var letterText = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'})
-        .text("Letter: " + this.getSyncVar('currentLetter'));
-    $('#gamecontainer').append(letterText);
-    var countHolder = $('<div>').prop({class:'display-2 text-center align-middle flex-row align-self-center'})
-        .text("Starting in 5");
-    $('#gamecontainer').append(countHolder);
-
+    $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in 5');
     this.setHandler('tick timer', function(_, time) {
-      countHolder.text("Starting in " + time);
-      letterText.text("Letter: " + this.getSyncVar('currentLetter'));
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
     });
     this.setHandler('finish timer', function(_, __) {
-      countHolder.text("Starting...");
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting...');
       if (this.isHost) {
         this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
         this.gameRoom.sendToEveryone('start round', this.getSyncVar('currentList'));
