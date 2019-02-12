@@ -1,6 +1,15 @@
 <div id='gamecontainer' class='align-items-middle'>
   <div id='bigtext' class='display-2 text-center align-middle  align-self-center'></div>
+  <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' value='startt'>Start</button>
   <div id='qlist' hidden></div>
+  <div id='votelist' hidden></div>
+
+  <div id='votestemplate' class='input-group mb-3' hidden>
+    <div class='input-group-prepend'>
+      <button class='btn btn-outline-secondary' type='button'>Yes</button>
+      <button class='btn btn-outline-secondary' type='button'>No</button>
+    </div>
+  </div>
 </div>
 <script>
 QUESTION_SETS = [
@@ -48,15 +57,6 @@ QUESTION_SETS = [
   ]
 ]
 
-
-function PlayerObject(name,id,playerIndex) {
-  this.name = name;
-  this.id = id;
-  this.playerIndex = playerIndex;
-  this.score = 0;
-  this.recentAnswers = [];
-}
-
 function Game(gameRoom) {
   console.log(gameRoom);
 
@@ -70,39 +70,25 @@ function Game(gameRoom) {
   const SCORE = 3;
   this.gameState = WAITING;
   this.setGameState = function (newState) {
+    $('#bigtext').text('');
     if (newState == WAITING) {
-      $('#bigtext').show();
       $('#qlist').hide();
+      $('#votelist').hide();
     } else if (newState == LIST) {
-      $('#bigtext').show();
       $('#qlist').show();
+      $('#votelist').hide();
     } else if (newState == VOTE) {
-      $('#bigtext').show();
       $('#qlist').hide();
+      $('#votelist').show();
     } else if (newState == SCORE) {
-      $('#bigtext').show();
       $('#qlist').hide();
+      $('#votelist').hide();
     }
     this.gameState = newState;
   }
   this.setGameState(WAITING);
-
-  // this.setHandler('chat',function(from, msg) {
-  //   if(msg == 'new game') {
-  //     $('#messages').empty();
-  //   }
-  //   else
-  //      $('#messages').append($('<li>').text(msg));
-  // });
-
-  // console.log($('form'));
-  // var thisGame = this;
-  // $('form').submit(function(){
-  //   thisGame.gameRoom.sendToEveryone('chat', gameRoom.name + ": " + $('#m').val());
-
-  //   $('#m').val('');
-  //   return false;
-  // });
+  this.questionSetIdx = 0;
+  this.votingAnswerIdx = 0;
 
   this.setHandler('set color', function(from, color){
     // colorNum = parseInt(color);
@@ -112,34 +98,31 @@ function Game(gameRoom) {
   })
 
   this.refreshPlayers = function(_, __) {
+    console.log("Updated player list...");
+    console.log(this.playerList);
     for (var i = 0; i < this.playerList.length; i++) {
-      console.log("Updated player list...");
-      console.log(this.playerList);
       var playerInfo = this.playerList[i];
       if (!this.players.hasOwnProperty(playerInfo.ID)) {
-        console.log("new player")
-        console.log(playerInfo)
-        this.players[playerInfo.ID] = new PlayerObject(playerInfo.Name, playerInfo.ID, i);
-        
-        // TODO: This will give players unique colors
-        // Fix send to player
-        this.gameRoom.sendToPlayer(playerInfo.ID,'set color', this.players[playerInfo.ID].playerIndex);
+        console.log("new player");
+        console.log(playerInfo);
+        this.gameRoom.sendToPlayer(playerInfo.ID, 'set color', i);
       }
     }
   };
   
   this.setHandler('update player list', this.refreshPlayers);
 
-  this.setHandler('start round', function(from,index) {
+  this.setHandler('start round', function (from, index) {
+    this.questionSetIdx = index;
     this.setGameState(LIST);
     var list = $('#qlist');
     list.empty();
-    for(i=1;i <= 12;i++) {
+    for (var i = 0; i < 12; i++) {
 
-      list.append($('<label>').text("" + i + ". " + QUESTION_SETS[index][i-1]).prop({for:'a'+i}));
+      list.append($('<label>').text("" + (i + 1) + ". " + QUESTION_SETS[this.questionSetIdx][i]).prop({for:'a'+i}));
 
       list.append($('<div>').prop({class:"input-group mb-3"}).append(
-        $('<input>').prop({id:"a"+(i-1),autocomplete:'off',class:"form-control answers",prompt:""+(i-1),type:"text"})));
+        $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
 
     var seconds = 60*2;
@@ -168,36 +151,38 @@ function Game(gameRoom) {
 
   });
 
-  this.sendAnswers = function() {
+  this.sendAnswers = function () {
     this.setGameState(WAITING);
     $('#bigtext').text("Round over.\nGet ready to score");
     thisGame = this;
     var answers = {};
-    $('.answers').each(
-      function (){
-        // console.log($(this));
-        answers[$(this).attr('id')] = $(this).val();
-      }
-    );
+    $('.answers').each(function (){
+      answers[$(this).attr('id')] = $(this).val();
+    });
     console.log("Player answers")
     console.log(answers);
-    this.gameRoom.sendToHost("player answers", answers);
+    this.gameRoom.sendToHost('player answers', answers);
   
     thisGame = this;
-    setTimeout(function() {
+    setTimeout(function () {
+      thisGame.votingAnswerIdx = 0;
       thisGame.displayVoting();
     },5000);
   };
 
   this.setHandler('player answers', function(from, answers) {
+    console.log("got player answers");
+    console.log(from);
     console.log(answers);
-    console.log(this.players)
-    console.log(from)
-    // TODO THIS NEEDS TO BE A SYNC VAR @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    this.players[from].recentAnswers = answers;
-  })
+    var allAnswers = this.getSyncVar('player answers');
+    allAnswers[from] = answers;
+    console.log("New all answers");
+    console.log(allAnswers);
+    this.setSyncVar('player answers', allAnswers);
+  });
 
   this.displayVoting = function() {
+    this.setGameState(VOTE);
     // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     // TODO: After each voting ends, call again with the next index until we're done
     // Display for players is https://getbootstrap.com/docs/4.0/components/buttons/#checkbox-and-radio-buttons
@@ -205,30 +190,27 @@ function Game(gameRoom) {
     // for each ite,
     // submit button in footer
     // Display for host is each answer for the round with an up/down icon colored for the player that voted that way
-    console.log(this.players);
-    answers = {};
-    for (player in this.players) {
+    // setup answers and scores
+    $('#bigtext').text(QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
+    $('#votelist').empty();
+    var answers = this.getSyncVar('player answers');
+    for (var i = 0; i < this.playerList.length; i++) {
+      var playerID = this.playerList[i].ID;
       // console.log(player);
       // console.log(this.players);
-//       <div class="input-group mb-3">
-//   <div class="input-group-prepend">
-//     <button class="btn btn-outline-secondary" type="button">Button</button>
-//     <button class="btn btn-outline-secondary" type="button">Button</button>
-//   </div>
-//   <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon1">
-// </div>
-      console.log(this.players[player].recentAnswers['a'+answerIndex]);
-      answers[player] = this.players[player].recentAnswers['a'+answerIndex];
-      likesCol = $('<div>').prop({class:'col pt-1'});
-      $('#gamecontainer').append($('<div>').prop({class:'rounded border container'}).append($('<div>').prop({class:'row'}).append(likesCol).append($('<div>').prop({class:'col-6 pt-1'}).append(answers[player]))));
-      for (p in this.players) {
-        likesCol.append($('<i>').prop({class:'material-icons playercolor-'+(this.players[p].playerIndex + 1),id:p}).text('thumbs_up_down'));
-      }
-
+      // <div class="input-group mb-3">
+      //   <div class="input-group-prepend">
+      //     <button class="btn btn-outline-secondary" type="button">Button</button>
+      //     <button class="btn btn-outline-secondary" type="button">Button</button>
+      //   </div>
+      //   <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon1">
+      // </div>
+      var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx];
+      var entry = $('<div>').prop({class:'col pt-1'});
+      entry.append($('#votestemplate').clone());
+      $('#voteslist').append(entry);
     }
-    console.log(answers);
-
-  });
+  };
 
   this.clearTimers = function() {
     thisGame.setHandler('tick timer', function(_, time) {
@@ -256,29 +238,37 @@ function Game(gameRoom) {
   });
 
   this.setup = function() {
-
-
     $('#footer').empty();
     $('#header').empty();
     $('#header').text(this.gameRoom.name);
 
-    if(this.isHost == false) {
+    if(this.isHost === false) {
+      this.setSyncVar('player answers', {});
+      this.setSyncVar('player scores', {});
       console.log("Sending to host")
       //this.gameRoom.sendToHost("player join", {id:this.gameRoom.playerID,name:this.gameRoom.name});
       $('#bigtext').text('Waiting on host...');
     } else {
       $('#bigtext').text('Waiting for players');
-      startButton = $('<button>').prop({class:'btn btn-primary btn-lg btn-block flex-row align-self-center mt-3'}).text('Start');
-      $('#gamecontainer').append(startButton);
-
+      $('#startbuton').show();
       thisGame = this
 
-      startButton.click(function() {
+      $('#startbutton').click(function() {
         thisGame.gameRoom.setRoomClosed();
-        letter = String.fromCharCode(Math.floor(Math.random() * 26)+65);
-        console.log(letter);
+        letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
         thisGame.setSyncVar('currentLetter', letter);
         thisGame.gameRoom.sendToEveryone('start round countdown', '');
+
+        // setup answers and scores
+        var answers = thisRoom.getSyncVar('player answers');
+        var scores = thisRoom.getSyncVar('player scores');
+        for (var i = 0; i < thisGame.playerList.length; i++) {
+          var player = thisGame.playerList[i];
+          answers[player.ID] = {};
+          scores[player.ID] = 0;
+        }
+        thisRoom.setSyncVar('player answers', answers);
+        thisRoom.setSyncVar('player scores', scores);
       });
 
       this.refreshPlayers();

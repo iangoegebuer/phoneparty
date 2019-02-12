@@ -33,6 +33,10 @@ function gameBase(gameRoom) {
   // SPECIAL SYNC VARS
   // script
   this.getSyncVar = function (varName) {
+    if (!this.gameVariables.hasOwnProperty(varName)) {
+      console.log("Unknown sync var: " + varName);
+      return null;
+    }
     return this.gameVariables[varName];
   }
 
