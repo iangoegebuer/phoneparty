@@ -1,10 +1,10 @@
 <div id='gamecontainer' class='align-items-middle'>
   <div id='bigtext' class='display-2 text-center align-middle  align-self-center'></div>
-  <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' value='startt'>Start</button>
-  <div id='qlist' hidden></div>
-  <div id='votelist' hidden></div>
+  <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' value='startt' style='display:none;'>Start</button>
+  <div id='qlist'></div>
+  <div id='votelist'></div>
 
-  <div id='votestemplate' class='input-group mb-3' hidden>
+  <div id='votestemplate' class='input-group mb-3' style='display:none;'>
     <div class='input-group-prepend'>
       <button class='btn btn-outline-secondary' type='button'>Yes</button>
       <button class='btn btn-outline-secondary' type='button'>No</button>
@@ -71,6 +71,8 @@ function Game(gameRoom) {
   this.gameState = WAITING;
   this.setGameState = function (newState) {
     $('#bigtext').text('');
+    $('#votestemplate').hide();
+    $('#startbutton').hide();
     if (newState == WAITING) {
       $('#qlist').hide();
       $('#votelist').hide();
@@ -86,26 +88,25 @@ function Game(gameRoom) {
     }
     this.gameState = newState;
   }
-  this.setGameState(WAITING);
-  this.questionSetIdx = 0;
-  this.votingAnswerIdx = 0;
 
   this.setup = function() {
+    this.setGameState(WAITING);
+    this.questionSetIdx = 0;
+    this.votingAnswerIdx = 0;
+
     $('#footer').empty();
     $('#header').empty();
     $('#header').text(this.gameRoom.name);
 
     if(this.isHost === false) {
-      this.setSyncVar('player answers', {});
-      this.setSyncVar('player scores', {});
-      console.log("Sending to host")
-      //this.gameRoom.sendToHost("player join", {id:this.gameRoom.playerID,name:this.gameRoom.name});
       $('#bigtext').text('Waiting on host...');
     } else {
+      this.setSyncVar('player answers', {});
+      this.setSyncVar('player scores', {});
       $('#bigtext').text('Waiting for players');
-      $('#startbuton').show();
       thisGame = this
 
+      $('#startbutton').show();
       $('#startbutton').click(function() {
         thisGame.gameRoom.setRoomClosed();
         letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
@@ -113,15 +114,16 @@ function Game(gameRoom) {
         thisGame.gameRoom.sendToEveryone('start round countdown', '');
 
         // setup answers and scores
-        var answers = thisRoom.getSyncVar('player answers');
-        var scores = thisRoom.getSyncVar('player scores');
+        var answers = thisGame.getSyncVar('player answers');
+        var scores = thisGame.getSyncVar('player scores');
         for (var i = 0; i < thisGame.playerList.length; i++) {
           var player = thisGame.playerList[i];
           answers[player.ID] = {};
           scores[player.ID] = 0;
         }
-        thisRoom.setSyncVar('player answers', answers);
-        thisRoom.setSyncVar('player scores', scores);
+        thisGame.setSyncVar('player answers', answers);
+        thisGame.setSyncVar('player scores', scores);
+        $('#startbutton').click(function() {});
       });
 
       this.refreshPlayers();
