@@ -90,6 +90,46 @@ function Game(gameRoom) {
   this.questionSetIdx = 0;
   this.votingAnswerIdx = 0;
 
+  this.setup = function() {
+    $('#footer').empty();
+    $('#header').empty();
+    $('#header').text(this.gameRoom.name);
+
+    if(this.isHost === false) {
+      this.setSyncVar('player answers', {});
+      this.setSyncVar('player scores', {});
+      console.log("Sending to host")
+      //this.gameRoom.sendToHost("player join", {id:this.gameRoom.playerID,name:this.gameRoom.name});
+      $('#bigtext').text('Waiting on host...');
+    } else {
+      $('#bigtext').text('Waiting for players');
+      $('#startbuton').show();
+      thisGame = this
+
+      $('#startbutton').click(function() {
+        thisGame.gameRoom.setRoomClosed();
+        letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+        thisGame.setSyncVar('currentLetter', letter);
+        thisGame.gameRoom.sendToEveryone('start round countdown', '');
+
+        // setup answers and scores
+        var answers = thisRoom.getSyncVar('player answers');
+        var scores = thisRoom.getSyncVar('player scores');
+        for (var i = 0; i < thisGame.playerList.length; i++) {
+          var player = thisGame.playerList[i];
+          answers[player.ID] = {};
+          scores[player.ID] = 0;
+        }
+        thisRoom.setSyncVar('player answers', answers);
+        thisRoom.setSyncVar('player scores', scores);
+      });
+
+      this.refreshPlayers();
+    }
+
+    this.started = true;
+  }
+
   this.setHandler('set color', function(from, color){
     // colorNum = parseInt(color);
     console.log("color " + color);
@@ -109,8 +149,24 @@ function Game(gameRoom) {
       }
     }
   };
-  
   this.setHandler('update player list', this.refreshPlayers);
+
+  this.setHandler('start round countdown', function (_, __) {
+    $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in 5');
+    this.setHandler('tick timer', function(_, time) {
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
+    });
+    this.setHandler('finish timer', function(_, __) {
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting...');
+      if (this.isHost) {
+        this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
+        this.gameRoom.sendToEveryone('start round', this.getSyncVar('currentList'));
+      }
+    });
+    if (this.isHost) {
+      thisGame.gameRoom.startTimer(5);
+    }
+  });
 
   this.setHandler('start round', function (from, index) {
     this.questionSetIdx = index;
@@ -125,7 +181,7 @@ function Game(gameRoom) {
         $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
 
-    var seconds = 60*2;
+    var seconds = 60 * 2;
     seconds = 15;
     $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + seconds);
     if (this.isHost) {
@@ -196,86 +252,37 @@ function Game(gameRoom) {
     var answers = this.getSyncVar('player answers');
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
-      // console.log(player);
-      // console.log(this.players);
-      // <div class="input-group mb-3">
-      //   <div class="input-group-prepend">
-      //     <button class="btn btn-outline-secondary" type="button">Button</button>
-      //     <button class="btn btn-outline-secondary" type="button">Button</button>
-      //   </div>
-      //   <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon1">
-      // </div>
+      // TODO record what happens when the buttons go
       var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx];
       var entry = $('<div>').prop({class:'col pt-1'});
       entry.append($('#votestemplate').clone());
       $('#voteslist').append(entry);
     }
+    
+    var thisGame = this;
+    setTimeout(function () {
+      thisGame.votingAnswerIdx++;
+      if (thisGame.votingAnswerIdx < 12) {
+        thisGame.displayVoting();
+      } else { 
+        thisGame.displayScores();
+      }
+    }, 5000);
+  };
+
+  this.displayScores = function() {
+    $('#bigtext').text("SCORES BLAH BLAH");
+    // Make a start button that lets you start over?
+    if (this.isHost) {
+
+    }
   };
 
   this.clearTimers = function() {
-    thisGame.setHandler('tick timer', function(_, time) {
-    });
-    thisGame.setHandler('finish timer', function(_, __) {
-    });
-  }
-
-
-  this.setHandler('start round countdown', function (_, __) {
-    $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in 5');
     this.setHandler('tick timer', function(_, time) {
-      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
     });
     this.setHandler('finish timer', function(_, __) {
-      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting...');
-      if (this.isHost) {
-        this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
-        this.gameRoom.sendToEveryone('start round', this.getSyncVar('currentList'));
-      }
     });
-    if (this.isHost) {
-      thisGame.gameRoom.startTimer(5);
-    }
-  });
-
-  this.setup = function() {
-    $('#footer').empty();
-    $('#header').empty();
-    $('#header').text(this.gameRoom.name);
-
-    if(this.isHost === false) {
-      this.setSyncVar('player answers', {});
-      this.setSyncVar('player scores', {});
-      console.log("Sending to host")
-      //this.gameRoom.sendToHost("player join", {id:this.gameRoom.playerID,name:this.gameRoom.name});
-      $('#bigtext').text('Waiting on host...');
-    } else {
-      $('#bigtext').text('Waiting for players');
-      $('#startbuton').show();
-      thisGame = this
-
-      $('#startbutton').click(function() {
-        thisGame.gameRoom.setRoomClosed();
-        letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
-        thisGame.setSyncVar('currentLetter', letter);
-        thisGame.gameRoom.sendToEveryone('start round countdown', '');
-
-        // setup answers and scores
-        var answers = thisRoom.getSyncVar('player answers');
-        var scores = thisRoom.getSyncVar('player scores');
-        for (var i = 0; i < thisGame.playerList.length; i++) {
-          var player = thisGame.playerList[i];
-          answers[player.ID] = {};
-          scores[player.ID] = 0;
-        }
-        thisRoom.setSyncVar('player answers', answers);
-        thisRoom.setSyncVar('player scores', scores);
-      });
-
-      this.refreshPlayers();
-    }
-
-    this.started = true;
   }
-
 }
 </script>
