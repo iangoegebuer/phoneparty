@@ -109,7 +109,7 @@ function Game(gameRoom) {
       $('#startbutton').show();
       $('#startbutton').click(function() {
         thisGame.gameRoom.setRoomClosed();
-        letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+        var letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
         thisGame.setSyncVar('currentLetter', letter);
         thisGame.gameRoom.sendToEveryone('start round countdown', '');
 
@@ -185,6 +185,7 @@ function Game(gameRoom) {
 
     var seconds = 60 * 2;
     seconds = 15;
+    var letter = this.getSyncVar('currentLetter');
     $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + seconds);
     if (this.isHost) {
       this.gameRoom.startTimer(seconds);

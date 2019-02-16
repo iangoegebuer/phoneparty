@@ -1,8 +1,9 @@
 function gameBase(gameRoom) {
   this.gameRoom = gameRoom;
 
-  this.gameVariables = {script:'site/js/launchPad2.js'};
+  this.gameVariables = {};
   this.handlers = {};
+  
   this.playerID = null;
   this.isHost = false;
   this.isAudience = false;
@@ -11,6 +12,7 @@ function gameBase(gameRoom) {
   this.copyFrom = function (oldGame) {
     this.playerID = oldGame.playerID;
     this.isHost = oldGame.isHost;
+    this.isAudience = oldGame.isAudience;
     this.playerList = oldGame.playerList;
   }
   this.setup = function () {

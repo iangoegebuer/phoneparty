@@ -1,7 +1,6 @@
 function Room() {
-  this.game = {}
-  this.game.event = function(e,m) {
-  };
+  // create an empty game temporarily
+  this.game = new gameBase(this);
 
   // timer vars
   this.timerActive = false;
@@ -9,7 +8,7 @@ function Room() {
   this.timerLeft = 0;
 
   // which script
-  this.scriptURL = ''
+  this.scriptURL = '';
 
   // room vars
   this.room = location.pathname.replace('/','');
@@ -39,7 +38,7 @@ function Room() {
     thisRoom.game.isAudience = info.isAudience;
   });
   this.socket.on('sync var', function(varName, data) {
-    console.log('received sync var msg ' + varName + ':' + data + ' current val:' + thisRoom.game.gameVariables['script']);
+    console.log('received sync var msg ' + varName + ':' + data);
     data = JSON.parse(data);
     // only change the sync var for non-host
     if (thisRoom.game.isHost) {
@@ -48,37 +47,32 @@ function Room() {
     thisRoom.game.syncVarChanged(varName, data);
   });
   this.socket.on('set script', function(newScriptURL) {
-    if(thisRoom.game.started == false || thisRoom.scriptURL != newScriptURL) {
-      host = thisRoom.game.isHost;
-      /*
-      $.getScript(newScriptURL).done(function(script, status){
-        $('#game').empty();
-        console.log("Get script status: ", status);
-        var oldGame = thisRoom.game;
-        thisRoom.setGame(new Game(thisRoom));
-        thisRoom.game.copyFrom(oldGame);
-        thisRoom.scriptURL = newScriptURL;
-        thisRoom.game.setup();
-      }).fail(function( jqxhr, settings, exception ) {
-        console.log(jqxhr);
-        console.log(settings);
-        console.log(exception);
-      });
-      */
+    host = thisRoom.game.isHost;
+    /*
+    $.getScript(newScriptURL).done(function(script, status){
       $('#game').empty();
-      $('#game').load(newScriptURL, function (arg1, arg2) {
-        console.log("Loaded the game i guess? args:");
-        console.log(arg1);
-        console.log(arg2);
-        var oldGame = thisRoom.game;
-        thisRoom.setGame(new Game(thisRoom));
-        thisRoom.game.copyFrom(oldGame);
-        thisRoom.scriptURL = newScriptURL;
-        thisRoom.game.setup();
-      });
-    } else {
-      console.log("Could not change script. Game started:" + thisRoom.game.started + " current script:" + thisRoom.scriptURL + " new script:" + thisRoom.newScriptURL)
-    }
+      console.log("Get script status: ", status);
+      var oldGame = thisRoom.game;
+      thisRoom.setGame(new Game(thisRoom));
+      thisRoom.game.copyFrom(oldGame);
+      thisRoom.scriptURL = newScriptURL;
+      thisRoom.game.setup();
+    }).fail(function( jqxhr, settings, exception ) {
+      console.log(jqxhr);
+      console.log(settings);
+      console.log(exception);
+    });
+    */
+    $('#game').empty();
+    $('#game').load(newScriptURL, function (arg1, arg2) {
+      console.log("Loaded the game " + newScriptURL);
+      var oldGame = thisRoom.game;
+      thisRoom.setGame(new Game(thisRoom));
+      thisRoom.game.copyFrom(oldGame);
+      thisRoom.scriptURL = newScriptURL;
+      thisRoom.game.setup();
+      thisRoom.socket.emit('player ready')
+    });
   });
   this.socket.on('update all sync vars', function(data) {
     // only update for non-host

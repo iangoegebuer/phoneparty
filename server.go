@@ -131,7 +131,11 @@ func main() {
 		so.Emit("set player info", string(bytes))
 		so.Emit("set script", room.scriptURL)
 		log.Println("Current player list in room ", room.entryCode, " : ", room.listPlayers())
-		server.BroadcastTo("chat_"+roomCode, "update player list", room.listPlayers())
+
+		so.On("player ready", func() {
+			log.Println("New player ", playerInRoom.ID, " ready in room ", room.entryCode)
+			server.BroadcastTo("chat_"+roomCode, "update player list", room.listPlayers())
+		})
 
 		so.On("to everyone", func(msgType string, data string) {
 			server.BroadcastTo("chat_"+roomCode, "to everyone", playerID, msgType, data)
