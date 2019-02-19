@@ -5,10 +5,13 @@
   <div id='votelist'></div>
 
   <div id='votestemplate' class='input-group mb-3' style='display:none;'>
-    <div class='input-group-prepend'>
-      <button class='btn btn-outline-secondary' type='button'>Yes</button>
-      <button class='btn btn-outline-secondary' type='button'>No</button>
-    </div>
+    <fieldset>
+      <div class='input-group-prepend'>
+        <button class='btn btn-outline-secondary' type='button'>Yes</button>
+        <button class='btn btn-outline-secondary' type='button'>No</button>
+      </div>
+    </fieldset>
+    <span id='votelabel'>label</span>
   </div>
 </div>
 <script>
@@ -259,9 +262,12 @@ function Game(gameRoom) {
       var entry = $('<div>').prop({class:'col pt-1'});
       var voteClone = $('#votestemplate').clone();
       voteClone.removeAttr('id');
+      var voteLabel = voteClone.find('#votelabel');
+      voteLabel.removeAttr('id');
+      voteLabel.text(playerAnswer);
       entry.append(voteClone);
       voteClone.show();
-      $('#votelist').append(entry);
+      $('#votelist').append(voteClone);
     }
     
     var thisGame = this;
