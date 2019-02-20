@@ -30,50 +30,6 @@ body { font: 13px Helvetica, Arial; }
     background-color: #6c757d!important;
 }
 
-/* The scss for this is
-@for $i from 1 through 10 {
-  .playerbg-#{$i} {
-    background-color: hsl(($i * 0.618033988749895*360) % 360, 50%, 50%);
-  }
-}
-*/
-
-.playerbg-1 {
-	background-color: #4065bf;
-}
-
-.playerbg-2 {
-	background-color: #8abf40;
-}
-
-.playerbg-3 {
-	background-color: #bf40af;
-}
-
-.playerbg-4 {
-	background-color: #40bfaa;
-}
-
-.playerbg-5 {
-	background-color: #bf8540;
-}
-
-.playerbg-6 {
-	background-color: #6040bf;
-}
-
-.playerbg-7 {
-	background-color: #45bf40;
-}
-
-.playerbg-8 {
-	background-color: #bf406a;
-}
-
-.playerbg-9 {
-	background-color: #4090bf;
-}
-
-.playerbg-10 {
-	background-color: #b5bf40;
+.greenbg {
+  background-color: #7d4;
 }

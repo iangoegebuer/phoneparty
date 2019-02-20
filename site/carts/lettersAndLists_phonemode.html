@@ -5,12 +5,8 @@
   <div id='votelist'></div>
 
   <div id='votestemplate' class='input-group mb-3' style='display:none;'>
-    <fieldset>
-      <div class='input-group-prepend'>
-        <button class='btn btn-outline-secondary' type='button'>Yes</button>
-        <button class='btn btn-outline-secondary' type='button'>No</button>
-      </div>
-    </fieldset>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(true, this);'>Yes</button>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(false, this);'>No</button>
     <span id='votelabel'>label</span>
   </div>
 </div>
@@ -261,7 +257,7 @@ function Game(gameRoom) {
       var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx];
       var entry = $('<div>').prop({class:'col pt-1'});
       var voteClone = $('#votestemplate').clone();
-      voteClone.removeAttr('id');
+      voteClone.attr('id', 'vote_' + playerID);
       var voteLabel = voteClone.find('#votelabel');
       voteLabel.removeAttr('id');
       voteLabel.text(playerAnswer);
@@ -281,7 +277,25 @@ function Game(gameRoom) {
     }, 5000);
   };
 
+  this.clickVote = function (yes, button) {
+    console.log("Got click to vote " + yes + " event:");
+    console.log(button);
+    $(button).siblings.each(function() {
+      // "this" now refers to the items being iterated
+      $(this).click(function () {}); // disable on click behavior
+    });
+    $(button).addClass('greenbg');
+    // TODO determine which player this answer is for
+    var playerID = $(button).parent().attr('id').substr('vote_'.length);
+    console.log(playerID);
+    var voteObj = {votingAnswerIdx: this.votingAnswerIdx, playerID: 'fuck if I know', yes: yes };
+    console.log("vote");
+    console.log(voteObj);
+    this.gameRoom.sendToHost('vote', voteObj);
+  }
+
   this.displayScores = function() {
+    this.setGameState(SCORE);
     $('#bigtext').text("SCORES BLAH BLAH");
     // Make a start button that lets you start over?
     if (this.isHost) {
