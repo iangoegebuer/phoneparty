@@ -101,6 +101,7 @@ function Game(gameRoom) {
       $('#bigtext').text('Waiting on host...');
     } else {
       this.setSyncVar('player answers', {});
+      this.setSyncVar('player votes', {});
       this.setSyncVar('player scores', {});
       $('#bigtext').text('Waiting for players');
       thisGame = this
@@ -114,13 +115,16 @@ function Game(gameRoom) {
 
         // setup answers and scores
         var answers = thisGame.getSyncVar('player answers');
+        var votes = thisGame.getSyncVar('player votes');
         var scores = thisGame.getSyncVar('player scores');
         for (var i = 0; i < thisGame.playerList.length; i++) {
           var player = thisGame.playerList[i];
-          answers[player.ID] = {};
+          answers[player.ID] = {}; // this is formatted like 'a0': 'Firetruck'
+          votes[player.ID] = []; // this is just a big pile of vote objs
           scores[player.ID] = 0;
         }
         thisGame.setSyncVar('player answers', answers);
+        thisGame.setSyncVar('player votes', votes);
         thisGame.setSyncVar('player scores', scores);
         $('#startbutton').click(function() {});
       });
@@ -272,7 +276,7 @@ function Game(gameRoom) {
       if (thisGame.votingAnswerIdx < 12) {
         thisGame.displayVoting();
       } else { 
-        thisGame.displayScores();
+        thisGame.waitForScores();
       }
     }, 5000);
   };
@@ -280,22 +284,38 @@ function Game(gameRoom) {
   this.clickVote = function (yes, button) {
     console.log("Got click to vote " + yes + " event:");
     console.log(button);
-    $(button).siblings.each(function() {
+    $(button).siblings().each(function() {
       // "this" now refers to the items being iterated
+      console.log("What is THIS now?");
+      console.log(this);
       $(this).click(function () {}); // disable on click behavior
     });
     $(button).addClass('greenbg');
     // TODO determine which player this answer is for
     var playerID = $(button).parent().attr('id').substr('vote_'.length);
-    console.log(playerID);
-    var voteObj = {votingAnswerIdx: this.votingAnswerIdx, playerID: 'fuck if I know', yes: yes };
+    console.log("player id " + playerID);
+    var voteObj = { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
     console.log("vote");
     console.log(voteObj);
     this.gameRoom.sendToHost('vote', voteObj);
   }
 
-  this.displayScores = function() {
+  this.setHandler('vote', function(from, vote) {
+    console.log("Received vote")
+    console.log(vote);
+    
+    var votes = thisGame.getSyncVar('player votes');
+    votes[from].push(vote);
+    thisGame.setSyncVar('player votes', votes);
+  });
+
+  this.waitForScores = function() {
     this.setGameState(SCORE);
+    $('#bigtext').text("Calculating scores...");
+    // TODO make display scores be a message
+  };
+
+  this.displayScores = function() {
     $('#bigtext').text("SCORES BLAH BLAH");
     // Make a start button that lets you start over?
     if (this.isHost) {
