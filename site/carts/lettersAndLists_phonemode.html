@@ -121,7 +121,7 @@ function Game(gameRoom) {
           var player = thisGame.playerList[i];
           answers[player.ID] = {}; // this is formatted like 'a0': 'Firetruck'
           votes[player.ID] = []; // this is just a big pile of vote objs
-          scores[player.ID] = 0;
+          scores[player.ID] = []; // this is a list of scores for each round
         }
         thisGame.setSyncVar('player answers', answers);
         thisGame.setSyncVar('player votes', votes);
@@ -312,13 +312,50 @@ function Game(gameRoom) {
     if (this.isHost) {
       var thisGame = this;
       setTimeout(function () {
-        // TODO calculate the scores here and set a sync var
+        thisGame.calculateRoundScores();
+        // Iterate through all votes of all players
         setTimeout(function () {
           thisGame.sendToEveryone('display scores', {});
         }, 1000);
       }, 3000);
     }
   };
+
+  this.calculateRoundScores = function () {
+    // TODO calculate the scores here and set a sync var
+    // it'll work like this
+    // iterate through each answer of each person
+    // iterate through each person who voted on that answer
+    // calculate how many people voted yes / how many votes. 50% or less counts as no. If it's 0/0, it's no.
+    // Show how many points each person has gotten
+    // Votes look like: { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
+    var sumsPerPlayer = {};
+    for (var i = 0; i < this.playerList.length; i++) {
+      var playerID = this.playerList[i].ID;
+      sumsPerPlayer[playerID] = { yes: [], total: [] };
+      for (var j = 0; j < 12; j++) {
+        sumsPerPlayer[playerID].yes.push(0);
+        sumsPerPlayer[playerID].total.push(0);
+      }
+    }
+
+    var votes = this.getSyncVar('player votes');
+    for (var i = 0; i < this.playerList.length; i++) {
+      var playerID = this.playerList[i].ID;
+      var playerVotes = votes[playerID];
+      for (var j = 0; j < playerVotes.length; j++) {
+        var vote = playerVotes[j];
+        var targetPlayerSums = sumsPerPlayer[vote.playerID];
+        targetPlayerSums.yes[vote.votingAnswerIdx] += (vote.yes ? 1 : 0);
+        targetPlayerSums.total[vote.votingAnswerIdx] += 1;
+      }
+      // clear votes when done
+      votes[playerID] = [];
+    }
+    this.setSyncVar('player votes', votes);
+
+    // TODO now turn player sums into scores for the round
+  }
 
   this.setHandler('display scores', function() {
     $('#bigtext').text("SCORES BLAH BLAH");
