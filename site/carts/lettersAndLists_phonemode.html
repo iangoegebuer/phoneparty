@@ -127,6 +127,7 @@ function Game(gameRoom) {
         thisGame.setSyncVar('player votes', votes);
         thisGame.setSyncVar('player scores', scores);
         $('#startbutton').click(function() {});
+        $('#startbutton').hide();
       });
 
       this.refreshPlayers();
@@ -282,21 +283,16 @@ function Game(gameRoom) {
   };
 
   this.clickVote = function (yes, button) {
-    console.log("Got click to vote " + yes + " event:");
-    console.log(button);
+    $(button).attr('onclick', '');
     $(button).siblings().each(function() {
       // "this" now refers to the items being iterated
-      console.log("What is THIS now?");
-      console.log(this);
-      $(this).click(function () {}); // disable on click behavior
+      if ($(this).is('button')) {
+        $(this).attr('onclick', ''); // disable on click behavior
+        $(this).hide();
+      }
     });
-    $(button).addClass('greenbg');
-    // TODO determine which player this answer is for
     var playerID = $(button).parent().attr('id').substr('vote_'.length);
-    console.log("player id " + playerID);
     var voteObj = { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
-    console.log("vote");
-    console.log(voteObj);
     this.gameRoom.sendToHost('vote', voteObj);
   }
 
@@ -312,16 +308,25 @@ function Game(gameRoom) {
   this.waitForScores = function() {
     this.setGameState(SCORE);
     $('#bigtext').text("Calculating scores...");
-    // TODO make display scores be a message
+    // just give it a few seconds to even out, then calculate the scores
+    if (this.isHost) {
+      var thisGame = this;
+      setTimeout(function () {
+        // TODO calculate the scores here and set a sync var
+        setTimeout(function () {
+          thisGame.sendToEveryone('display scores', {});
+        }, 1000);
+      }, 3000);
+    }
   };
 
-  this.displayScores = function() {
+  this.setHandler('display scores', function() {
     $('#bigtext').text("SCORES BLAH BLAH");
     // Make a start button that lets you start over?
     if (this.isHost) {
-
+      // send message "NEXT ROUND"
     }
-  };
+  });
 
   this.clearTimers = function() {
     this.setHandler('tick timer', function(_, time) {
