@@ -1,8 +1,10 @@
 <div id='gamecontainer' class='align-items-middle'>
   <div id='bigtext' class='display-2 text-center align-middle  align-self-center'></div>
-  <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' value='startt' style='display:none;'>Start</button>
+  <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' style='display:none;'>Start</button>
+  <button id='nextroundbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' style='display:none;'>Another Round?</button>
   <div id='qlist'></div>
   <div id='votelist'></div>
+  <table id='scoretable'></table>
 
   <div id='votestemplate' class='input-group mb-3' style='display:none;'>
     <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(true, this);'>Yes</button>
@@ -72,18 +74,23 @@ function Game(gameRoom) {
     $('#bigtext').text('');
     $('#votestemplate').hide();
     $('#startbutton').hide();
+    $('#nextRoundButton').hide();
     if (newState == WAITING) {
       $('#qlist').hide();
       $('#votelist').hide();
+      $('#scoretable').hide();
     } else if (newState == LIST) {
       $('#qlist').show();
       $('#votelist').hide();
+      $('#scoretable').hide();
     } else if (newState == VOTE) {
       $('#qlist').hide();
       $('#votelist').show();
+      $('#scoretable').hide();
     } else if (newState == SCORE) {
       $('#qlist').hide();
       $('#votelist').hide();
+      $('#scoretable').show();
     }
     this.gameState = newState;
   }
@@ -315,7 +322,7 @@ function Game(gameRoom) {
         thisGame.calculateRoundScores();
         // Iterate through all votes of all players
         setTimeout(function () {
-          thisGame.sendToEveryone('display scores', {});
+          thisGame.gameRoom.sendToEveryone('display scores', {});
         }, 1000);
       }, 3000);
     }
@@ -354,14 +361,72 @@ function Game(gameRoom) {
     }
     this.setSyncVar('player votes', votes);
 
-    // TODO now turn player sums into scores for the round
+    var scores = this.getSyncVar('player scores');
+    for (var i = 0; i < this.playerList.length; i++) {
+      var playerID = this.playerList[i].ID;
+      var roundScore = 0;
+      for (var j = 0; j < 12; j++) {
+        var add = 0;
+        if (targetPlayerSums.total[j] > 0 && (targetPlayerSums.yes[j] / targetPlayerSums.total[j] > .5)) {
+          add = 1;
+        }
+        roundScore += add;
+      }
+      scores[playerID].push(roundScore);
+    }
+    this.setSyncVar('player scores', scores);
   }
 
   this.setHandler('display scores', function() {
-    $('#bigtext').text("SCORES BLAH BLAH");
+    this.setGameState(SCORE);
+    var scores = this.getSyncVar('player scores');
+    var myScores = scores[this.playerID];
+    $('#bigtext').text('Round ' + myScores.length + ' Scores');
+    $('#scoretable').empty();
+    // title row
+    var row = $('<tr>');
+    row.append($('<td>').text('Name'));
+    row.append($('<td>').text('Round Score'));
+    row.append($('<td>').text('Total Score'));
+    $('#scoretable').append(row);
+    for (var i = 0; i < this.playerList.length; i++) {
+      var player = this.playerList[i];
+      row = $('<tr>');
+      var nameTD = $('<td>').text(player.ID === this.playerID ? ('<b>' + player.Name + '</b>') : player.Name);
+      row.append(nameTD);
+      var roundScore = scores[player.ID][(scores[player.ID].length - 1)];
+      var totalScore = 0;
+      for (var j = 0; j < scores[player.ID].length; j++) {
+        totalScore += scores[player.ID][j];
+      }
+      var roundScoreTD = $('<td>').text(roundScore);
+      row.append(roundScoreTD);
+      var totalScoreTD = $('<td>').text(totalScore);
+      row.append(totalScoreTD);
+      $('#scoretable').append(row);
+    }
     // Make a start button that lets you start over?
     if (this.isHost) {
       // send message "NEXT ROUND"
+      $('#nextroundbutton').show();
+      // TODO check if this gets overwritten every time
+      $('#nextroundbutton').click(function() {
+        console.log("Anoth round");
+        // reset answers and votes
+        var answers = thisGame.getSyncVar('player answers');
+        var votes = thisGame.getSyncVar('player votes');
+        for (var i = 0; i < thisGame.playerList.length; i++) {
+          var player = thisGame.playerList[i];
+          answers[player.ID] = {}; // this is formatted like 'a0': 'Firetruck'
+          votes[player.ID] = []; // this is just a big pile of vote objs
+        }
+        thisGame.setSyncVar('player answers', answers);
+        thisGame.setSyncVar('player votes', votes);
+
+        var letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+        thisGame.setSyncVar('currentLetter', letter);
+        thisGame.gameRoom.sendToEveryone('start round countdown', '');
+      });
     }
   });
 
