@@ -1,5 +1,6 @@
 <div id='gamecontainer' class='align-items-middle'>
-  <div id='bigtext' class='display-2 text-center align-middle  align-self-center'></div>
+  <h1 id='bigtext' class='text-center align-middle align-self-center'></h1>
+  <h4 id='helptext' class='text-center align-middle align-self-center'></h4>
   <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' style='display:none;'>Start</button>
   <button id='nextroundbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' style='display:none;'>Another Round?</button>
   <div id='qlist'></div>
@@ -21,6 +22,8 @@ QUESTION_SETS = [
     "Living politician",
     "Vegetable",
     "Article of clothing",
+  ],
+  [
     "Dead politician",
     "Grocery store chain",
     "Video game",
@@ -35,6 +38,8 @@ QUESTION_SETS = [
     "Animated movie",
     "Color",
     "Actress",
+  ],
+  [
     "State",
     "Live-action movie",
     "Bug",
@@ -49,6 +54,8 @@ QUESTION_SETS = [
     "Song name",
     "Programming language",
     "Cookware",
+  ],
+  [
     "Berry",
     "Book title",
     "Super Smash Bros. character",
@@ -57,6 +64,7 @@ QUESTION_SETS = [
     "Movie adaptation",
   ]
 ]
+var NUM_QUESTIONS = 6;
 
 function Game(gameRoom) {
   console.log(gameRoom);
@@ -79,18 +87,22 @@ function Game(gameRoom) {
       $('#qlist').hide();
       $('#votelist').hide();
       $('#scoretable').hide();
+      $('#helptext').text('');
     } else if (newState == LIST) {
       $('#qlist').show();
       $('#votelist').hide();
       $('#scoretable').hide();
+      $('#helptext').text('Enter names of the given category, starting with the letter above.\n\n"A", "An", and "The" do not count; you can for example use "Matrix, The" for M. Proper names can be given last name first if desired, such as "Obama, Barack".');
     } else if (newState == VOTE) {
       $('#qlist').hide();
       $('#votelist').show();
       $('#scoretable').hide();
+      $('#helptext').text('Vote "yes" on entries that are valid responses to the question, and start with the correct letter. You have 5 seconds to vote for each question.');
     } else if (newState == SCORE) {
       $('#qlist').hide();
       $('#votelist').hide();
       $('#scoretable').show();
+      $('#helptext').text('');
     }
     this.gameState = newState;
   }
@@ -116,7 +128,7 @@ function Game(gameRoom) {
       $('#startbutton').show();
       $('#startbutton').click(function() {
         thisGame.gameRoom.setRoomClosed();
-        var letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+        var letter = randomPick("ABCDEFGHIJKLMNOPRSTUVWY"); // exclude z, x, q
         thisGame.setSyncVar('currentLetter', letter);
         thisGame.gameRoom.sendToEveryone('start round countdown', '');
 
@@ -182,11 +194,12 @@ function Game(gameRoom) {
   });
 
   this.setHandler('start round', function (from, index) {
+    console.log("starting round with index " + index)
     this.questionSetIdx = index;
     this.setGameState(LIST);
     var list = $('#qlist');
     list.empty();
-    for (var i = 0; i < 12; i++) {
+    for (var i = 0; i < NUM_QUESTIONS; i++) {
 
       list.append($('<label>').text("" + (i + 1) + ". " + QUESTION_SETS[this.questionSetIdx][i]).prop({for:'a'+i}));
 
@@ -194,8 +207,7 @@ function Game(gameRoom) {
         $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
 
-    var seconds = 60 * 2;
-    seconds = 15;
+    var seconds = 60;
     var letter = this.getSyncVar('currentLetter');
     $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + seconds);
     if (this.isHost) {
@@ -253,20 +265,17 @@ function Game(gameRoom) {
 
   this.displayVoting = function() {
     this.setGameState(VOTE);
-    // TODO: After each voting ends, call again with the next index until we're done
-    // Display for players is https://getbootstrap.com/docs/4.0/components/buttons/#checkbox-and-radio-buttons
-    // with the text next to it and only 2 buttons thumbs up and down (already included material ui icons)
-    // for each ite,
-    // submit button in footer
-    // Display for host is each answer for the round with an up/down icon colored for the player that voted that way
-    // setup answers and scores
-    $('#bigtext').text("" + this.votingAnswerIdx + ". " + QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
+    $('#bigtext').text('Letter: ' + this.getSyncVar('currentLetter') + '\n' + (this.votingAnswerIdx + 1) + ". " + QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
     $('#votelist').empty();
     var answers = this.getSyncVar('player answers');
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
       // TODO record what happens when the buttons go
-      var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx];
+      var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx].trim();
+      if (playerAnswer === "") {
+        // Skip empty answers - automatic no's
+        continue;
+      }
       var entry = $('<div>').prop({class:'col pt-1'});
       var voteClone = $('#votestemplate').clone();
       voteClone.attr('id', 'vote_' + playerID);
@@ -281,7 +290,7 @@ function Game(gameRoom) {
     var thisGame = this;
     setTimeout(function () {
       thisGame.votingAnswerIdx++;
-      if (thisGame.votingAnswerIdx < 12) {
+      if (thisGame.votingAnswerIdx < NUM_QUESTIONS) {
         thisGame.displayVoting();
       } else { 
         thisGame.waitForScores();
@@ -313,7 +322,7 @@ function Game(gameRoom) {
   });
 
   this.waitForScores = function() {
-    this.setGameState(SCORE);
+    this.setGameState(WAITING);
     $('#bigtext').text("Calculating scores...");
     // just give it a few seconds to even out, then calculate the scores
     if (this.isHost) {
@@ -329,10 +338,6 @@ function Game(gameRoom) {
   };
 
   this.calculateRoundScores = function () {
-    // TODO calculate the scores here and set a sync var
-    // it'll work like this
-    // iterate through each answer of each person
-    // iterate through each person who voted on that answer
     // calculate how many people voted yes / how many votes. 50% or less counts as no. If it's 0/0, it's no.
     // Show how many points each person has gotten
     // Votes look like: { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
@@ -340,7 +345,7 @@ function Game(gameRoom) {
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
       sumsPerPlayer[playerID] = { yes: [], total: [] };
-      for (var j = 0; j < 12; j++) {
+      for (var j = 0; j < NUM_QUESTIONS; j++) {
         sumsPerPlayer[playerID].yes.push(0);
         sumsPerPlayer[playerID].total.push(0);
       }
@@ -364,8 +369,9 @@ function Game(gameRoom) {
     var scores = this.getSyncVar('player scores');
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
+      var targetPlayerSums = sumsPerPlayer[playerID];
       var roundScore = 0;
-      for (var j = 0; j < 12; j++) {
+      for (var j = 0; j < NUM_QUESTIONS; j++) {
         var add = 0;
         if (targetPlayerSums.total[j] > 0 && (targetPlayerSums.yes[j] / targetPlayerSums.total[j] > .5)) {
           add = 1;
@@ -392,7 +398,10 @@ function Game(gameRoom) {
     for (var i = 0; i < this.playerList.length; i++) {
       var player = this.playerList[i];
       row = $('<tr>');
-      var nameTD = $('<td>').text(player.ID === this.playerID ? ('<b>' + player.Name + '</b>') : player.Name);
+      if (player.ID == this.playerID) {
+        var nameTD = $('<td>').text(player.Name);
+      }
+      nameTD.css('font-weight', 'bold');
       row.append(nameTD);
       var roundScore = scores[player.ID][(scores[player.ID].length - 1)];
       var totalScore = 0;
@@ -405,12 +414,12 @@ function Game(gameRoom) {
       row.append(totalScoreTD);
       $('#scoretable').append(row);
     }
-    // Make a start button that lets you start over?
     if (this.isHost) {
-      // send message "NEXT ROUND"
       $('#nextroundbutton').show();
+      var thisGame = this;
       // TODO check if this gets overwritten every time
       $('#nextroundbutton').click(function() {
+        thisGame.setGameState(WAITING);
         console.log("Anoth round");
         // reset answers and votes
         var answers = thisGame.getSyncVar('player answers');
@@ -426,6 +435,7 @@ function Game(gameRoom) {
         var letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
         thisGame.setSyncVar('currentLetter', letter);
         thisGame.gameRoom.sendToEveryone('start round countdown', '');
+        $('#nextroundbutton').hide();
       });
     }
   });

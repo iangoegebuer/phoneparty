@@ -10,3 +10,7 @@ function getURLVars() {
   });
   return result;
 }
+
+function randomPick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}

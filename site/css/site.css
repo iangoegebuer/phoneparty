@@ -29,3 +29,7 @@ body { font: 13px Helvetica, Arial; }
 .bg-p1 {
     background-color: #6c757d!important;
 }
+
+td {
+  padding: 16px;
+}
