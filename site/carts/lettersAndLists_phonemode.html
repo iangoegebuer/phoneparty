@@ -10,6 +10,7 @@
   <div id='votestemplate' class='input-group mb-3' style='display:none;'>
     <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(true, this);'>Yes</button>
     <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(false, this);'>No</button>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(null, this);'>I don't know</button>
     <span id='votelabel'>label</span>
   </div>
 </div>
@@ -65,6 +66,8 @@ QUESTION_SETS = [
   ]
 ]
 var NUM_QUESTIONS = 6;
+var TUT_TEXT_1 = 'Enter names of the given category, starting with the letter above.\n\n"A", "An", and "The" do not count; you can for example use "Matrix, The" for M. Proper names can be given last name first if desired, such as "Obama, Barack".';
+var TUT_TEXT_2 = 'Vote "yes" on entries that are valid responses to the question, and start with the correct letter. You have 5 seconds to vote for each question.';
 
 function Game(gameRoom) {
   console.log(gameRoom);
@@ -74,9 +77,10 @@ function Game(gameRoom) {
   this.players = {};
 
   const WAITING = 0;
-  const LIST = 1;
-  const VOTE = 2;
-  const SCORE = 3;
+  const WAITING_ROUND_START = 1;
+  const LIST = 2;
+  const VOTE = 3;
+  const SCORE = 4;
   this.gameState = WAITING;
   this.setGameState = function (newState) {
     $('#bigtext').text('');
@@ -88,16 +92,21 @@ function Game(gameRoom) {
       $('#votelist').hide();
       $('#scoretable').hide();
       $('#helptext').text('');
+    } else if (newState == WAITING_ROUND_START) {
+      $('#qlist').hide();
+      $('#votelist').hide();
+      $('#scoretable').hide();
+      $('#helptext').text(TUT_TEXT_1);
     } else if (newState == LIST) {
       $('#qlist').show();
       $('#votelist').hide();
       $('#scoretable').hide();
-      $('#helptext').text('Enter names of the given category, starting with the letter above.\n\n"A", "An", and "The" do not count; you can for example use "Matrix, The" for M. Proper names can be given last name first if desired, such as "Obama, Barack".');
+      $('#helptext').text(TUT_TEXT_1);
     } else if (newState == VOTE) {
       $('#qlist').hide();
       $('#votelist').show();
       $('#scoretable').hide();
-      $('#helptext').text('Vote "yes" on entries that are valid responses to the question, and start with the correct letter. You have 5 seconds to vote for each question.');
+      $('#helptext').text(TUT_TEXT_2);
     } else if (newState == SCORE) {
       $('#qlist').hide();
       $('#votelist').hide();
@@ -177,6 +186,7 @@ function Game(gameRoom) {
   this.setHandler('update player list', this.refreshPlayers);
 
   this.setHandler('start round countdown', function (_, __) {
+    this.setGameState(WAITING_ROUND_START);
     $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in 5');
     this.setHandler('tick timer', function(_, time) {
       $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
@@ -200,9 +210,7 @@ function Game(gameRoom) {
     var list = $('#qlist');
     list.empty();
     for (var i = 0; i < NUM_QUESTIONS; i++) {
-
       list.append($('<label>').text("" + (i + 1) + ". " + QUESTION_SETS[this.questionSetIdx][i]).prop({for:'a'+i}));
-
       list.append($('<div>').prop({class:"input-group mb-3"}).append(
         $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
@@ -225,10 +233,6 @@ function Game(gameRoom) {
       // Step 5 display scores
       $('#bigtext').text('Letter: ' + letter + '\nTime\'s up');
       this.sendAnswers();
-
-      //if (this.isHost) {
-      //  this.gameRoom.sendToEveryone('send answers', '');
-      //}
     });
 
   });
@@ -247,8 +251,7 @@ function Game(gameRoom) {
   
     thisGame = this;
     setTimeout(function () {
-      thisGame.votingAnswerIdx = 0;
-      thisGame.displayVoting();
+      thisGame.startVoting();
     },5000);
   };
 
@@ -263,7 +266,24 @@ function Game(gameRoom) {
     this.setSyncVar('player answers', allAnswers);
   });
 
+  this.startVoting = function () {
+    thisGame.votingAnswerIdx = 0;
+
+    // TODO start the timer for the answers @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    this.setHandler('tick timer', function(_, time) {
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
+    });
+    this.setHandler('finish timer', function(_, __) {
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting...');
+      if (this.isHost) {
+        this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
+        this.gameRoom.sendToEveryone('start round', this.getSyncVar('currentList'));
+      }
+    });
+  };
+
   this.displayVoting = function() {
+    // TODO make it so you wait for all the votes before proceeding @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     this.setGameState(VOTE);
     $('#bigtext').text('Letter: ' + this.getSyncVar('currentLetter') + '\n' + (this.votingAnswerIdx + 1) + ". " + QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
     $('#votelist').empty();
@@ -307,6 +327,10 @@ function Game(gameRoom) {
         $(this).hide();
       }
     });
+    // yes is null when you press "i don't know" - don't send a vote in that case
+    if (yes === null) {
+      return;
+    }
     var playerID = $(button).parent().attr('id').substr('vote_'.length);
     var voteObj = { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
     this.gameRoom.sendToHost('vote', voteObj);
@@ -398,10 +422,10 @@ function Game(gameRoom) {
     for (var i = 0; i < this.playerList.length; i++) {
       var player = this.playerList[i];
       row = $('<tr>');
+      var nameTD = $('<td>').text(player.Name);
       if (player.ID == this.playerID) {
-        var nameTD = $('<td>').text(player.Name);
+        nameTD.css('font-weight', 'bold');
       }
-      nameTD.css('font-weight', 'bold');
       row.append(nameTD);
       var roundScore = scores[player.ID][(scores[player.ID].length - 1)];
       var totalScore = 0;
@@ -432,7 +456,7 @@ function Game(gameRoom) {
         thisGame.setSyncVar('player answers', answers);
         thisGame.setSyncVar('player votes', votes);
 
-        var letter = String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+        var letter = randomPick("ABCDEFGHIJKLMNOPRSTUVWY"); // exclude z, x, q
         thisGame.setSyncVar('currentLetter', letter);
         thisGame.gameRoom.sendToEveryone('start round countdown', '');
         $('#nextroundbutton').hide();

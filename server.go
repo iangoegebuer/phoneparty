@@ -197,8 +197,11 @@ func main() {
 
 		so.On("start timer", func(seconds string) {
 			// only the host can start the timer
-			if playerInRoom.ID != room.members[0].ID || room.timerActive {
+			if playerInRoom.ID != room.members[0].ID {
 				return
+			}
+			if room.timerActive {
+				close(room.timerStop)
 			}
 			secondsNum, err := strconv.Atoi(seconds)
 			if err != nil {
