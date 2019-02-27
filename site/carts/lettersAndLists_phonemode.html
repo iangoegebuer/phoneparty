@@ -1,6 +1,10 @@
 <div id='gamecontainer' class='align-items-middle'>
   <h1 id='bigtext' class='text-center align-middle align-self-center'></h1>
   <h4 id='helptext' class='text-center align-middle align-self-center'></h4>
+  <div id='timerbar' class='progress'>
+    <div id='timerinner' class='progress-bar' role='progressbar' style='width: 25%' aria-valuenow='25' aria-valuemin='0' aria-valuemax='100'></div>
+  </div>
+
   <button id='startbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' style='display:none;'>Start</button>
   <button id='nextroundbutton' class='btn btn-primary btn-lg btn-block flex-row align-self-center mt-3' style='display:none;'>Another Round?</button>
   <div id='qlist'></div>
@@ -92,26 +96,31 @@ function Game(gameRoom) {
       $('#votelist').hide();
       $('#scoretable').hide();
       $('#helptext').text('');
+      $('#timerbar').hide();
     } else if (newState == WAITING_ROUND_START) {
       $('#qlist').hide();
       $('#votelist').hide();
       $('#scoretable').hide();
       $('#helptext').text(TUT_TEXT_1);
+      $('#timerbar').hide();
     } else if (newState == LIST) {
       $('#qlist').show();
       $('#votelist').hide();
       $('#scoretable').hide();
       $('#helptext').text(TUT_TEXT_1);
+      $('#timerbar').hide();
     } else if (newState == VOTE) {
       $('#qlist').hide();
       $('#votelist').show();
       $('#scoretable').hide();
       $('#helptext').text(TUT_TEXT_2);
+      $('#timerbar').show();
     } else if (newState == SCORE) {
       $('#qlist').hide();
       $('#votelist').hide();
       $('#scoretable').show();
       $('#helptext').text('');
+      $('#timerbar').hide();
     }
     this.gameState = newState;
   }
@@ -267,22 +276,30 @@ function Game(gameRoom) {
   });
 
   this.startVoting = function () {
-    thisGame.votingAnswerIdx = 0;
-
-    // TODO start the timer for the answers @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    this.votingAnswerIdx = 0;
+    if (this.isHost) {
+      this.sendToEveryone('display voting', this.votingAnswerIdx);
+    }
+    
+    // timer starts in display voting
     this.setHandler('tick timer', function(_, time) {
-      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
+      var value = (100 * time / 30).toFixed();
+      timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', value).css('width', value + '%');
     });
     this.setHandler('finish timer', function(_, __) {
-      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting...');
+      timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', '0').css('width', '0%');
+      console.log('Advance the damn thing via timer?');
       if (this.isHost) {
-        this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
-        this.gameRoom.sendToEveryone('start round', this.getSyncVar('currentList'));
+        this.maybeAdvanceVote();
       }
     });
   };
 
-  this.displayVoting = function() {
+  this.setHandler('display voting', function(_, answerIdx) {
+    if (!this.isHost) {
+      // this isn't a sync var bc it needs to have the correct value when this msg comes in
+      this.votingAnswerIdx = answerIdx;
+    }
     // TODO make it so you wait for all the votes before proceeding @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     this.setGameState(VOTE);
     $('#bigtext').text('Letter: ' + this.getSyncVar('currentLetter') + '\n' + (this.votingAnswerIdx + 1) + ". " + QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
@@ -307,16 +324,13 @@ function Game(gameRoom) {
       $('#votelist').append(voteClone);
     }
     
-    var thisGame = this;
-    setTimeout(function () {
-      thisGame.votingAnswerIdx++;
-      if (thisGame.votingAnswerIdx < NUM_QUESTIONS) {
-        thisGame.displayVoting();
-      } else { 
-        thisGame.waitForScores();
-      }
-    }, 5000);
-  };
+    // start a new timer, even if one is running
+    this.gameRoom.startTimer(30); // 30 seconds
+    var timerBar = $('#timerinner');
+    timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', '100').css('width', '100%');
+
+    // TODO timer handlers are above, see if they workkk
+  });
 
   this.clickVote = function (yes, button) {
     $(button).attr('onclick', '');
@@ -336,16 +350,58 @@ function Game(gameRoom) {
     this.gameRoom.sendToHost('vote', voteObj);
   }
 
+  // host only
   this.setHandler('vote', function(from, vote) {
     console.log("Received vote")
     console.log(vote);
     
-    var votes = thisGame.getSyncVar('player votes');
+    var votes = this.getSyncVar('player votes');
     votes[from].push(vote);
-    thisGame.setSyncVar('player votes', votes);
+    this.setSyncVar('player votes', votes);
+    if (this.checkAllVotesIn(votes, this.votingAnswerIdx)) {
+      this.gameRoom.cancelTimer();
+      console.log('advance via completion')
+      this.maybeAdvanceVote();
+    }
   });
 
-  this.waitForScores = function() {
+  // TODO TEST @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  this.checkAllVotesIn = function(votes, answerIdx) {
+    // TODO implement - check if every player has answered this idx for all players
+    for (var i = 0; i < this.playerList.length; i++) {
+      var player1 = this.playerList[i];
+      var player1Votes = votes[player1.ID];
+      for (var j = 0; j < this.playerList.length; j++) {
+        var player2 = this.playerList[j];
+        // check if player1 voted on player2's answer for this question
+        var didVote = false;
+        for (var voteIdx = 0; voteIdx < player1Votes.length; voteIdx++) {
+          var vote = player1Votes[voteIdx];
+          if (vote.votingAnswerIdx === answerIdx && vote.playerID === player2.ID) {
+            var didVote = true;
+            break;
+          }
+        }
+        if (!didVote) {
+          console.log('vote not in from ' + player1.ID + ' to ' + player2.ID);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  this.maybeAdvanceVote = function () {
+    this.votingAnswerIdx++;
+    if (this.votingAnswerIdx < NUM_QUESTIONS) {
+      this.sendToEveryone('display voting', this.votingAnswerIdx);
+    } else { 
+      this.sendToEveryone('wait for scores', {});
+    }
+  }
+
+  this.setHandler('wait for scores', function(_, __) {
+    this.clearTimers();
     this.setGameState(WAITING);
     $('#bigtext').text("Calculating scores...");
     // just give it a few seconds to even out, then calculate the scores
@@ -359,8 +415,9 @@ function Game(gameRoom) {
         }, 1000);
       }, 3000);
     }
-  };
+  });
 
+  // TODO CHANGE - have to handle YES, NO, IDK and SAME votes
   this.calculateRoundScores = function () {
     // calculate how many people voted yes / how many votes. 50% or less counts as no. If it's 0/0, it's no.
     // Show how many points each person has gotten
