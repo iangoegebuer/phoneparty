@@ -12,9 +12,10 @@
   <table id='scoretable'></table>
 
   <div id='votestemplate' class='input-group mb-3' style='display:none;'>
-    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(true, this);'>Yes</button>
-    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(false, this);'>No</button>
-    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote(null, this);'>I don't know</button>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote("yes", this);'>Yes</button>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote("no", this);'>No</button>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote("idk", this);'>I don't know</button>
+    <button class='btn btn-outline-secondary' type='button' onclick='gameRoom.game.clickVote("same", this);'>Duplicate</button>
     <span id='votelabel'>label</span>
   </div>
 </div>
@@ -278,9 +279,10 @@ function Game(gameRoom) {
   this.startVoting = function () {
     this.votingAnswerIdx = 0;
     if (this.isHost) {
-      this.sendToEveryone('display voting', this.votingAnswerIdx);
+      this.gameRoom.sendToEveryone('display voting', this.votingAnswerIdx);
     }
     
+    var timerBar = $('#timerinner');
     // timer starts in display voting
     this.setHandler('tick timer', function(_, time) {
       var value = (100 * time / 30).toFixed();
@@ -300,18 +302,31 @@ function Game(gameRoom) {
       // this isn't a sync var bc it needs to have the correct value when this msg comes in
       this.votingAnswerIdx = answerIdx;
     }
-    // TODO make it so you wait for all the votes before proceeding @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     this.setGameState(VOTE);
     $('#bigtext').text('Letter: ' + this.getSyncVar('currentLetter') + '\n' + (this.votingAnswerIdx + 1) + ". " + QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
     $('#votelist').empty();
     var answers = this.getSyncVar('player answers');
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
-      // TODO record what happens when the buttons go
       var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx].trim();
-      if (playerAnswer === "") {
-        // Skip empty answers - automatic no's
+      if (playerAnswer === '') {
+        // send a no vote and skip this one
+        var voteObj = { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, value: 'no' };
+        this.gameRoom.sendToHost('vote', voteObj);
         continue;
+      }
+      // automatically check for same answers
+      var foundDuplicate = false;
+      for (var j = 0; j < this.playerList.length; j++) {
+        if (i === j) {
+          continue;
+        }
+        var playerIDOther = this.playerList[j].ID;
+        var playerAnswerOther = answers[playerIDOther]['a' + this.votingAnswerIdx].trim();
+        if (playerAnswer === playerAnswerOther) {
+          foundDuplicate = true;
+          break;
+        }
       }
       var entry = $('<div>').prop({class:'col pt-1'});
       var voteClone = $('#votestemplate').clone();
@@ -322,6 +337,13 @@ function Game(gameRoom) {
       entry.append(voteClone);
       voteClone.show();
       $('#votelist').append(voteClone);
+
+      if (foundDuplicate) {
+        // click the "duplicate" button automatically
+        // this is very hardcoded, sorry
+        console.log('clicking duplicate vote')
+        voteClone.children().eq(3).click();
+      }
     }
     
     // start a new timer, even if one is running
@@ -332,7 +354,7 @@ function Game(gameRoom) {
     // TODO timer handlers are above, see if they workkk
   });
 
-  this.clickVote = function (yes, button) {
+  this.clickVote = function (value, button) {
     $(button).attr('onclick', '');
     $(button).siblings().each(function() {
       // "this" now refers to the items being iterated
@@ -341,12 +363,8 @@ function Game(gameRoom) {
         $(this).hide();
       }
     });
-    // yes is null when you press "i don't know" - don't send a vote in that case
-    if (yes === null) {
-      return;
-    }
     var playerID = $(button).parent().attr('id').substr('vote_'.length);
-    var voteObj = { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
+    var voteObj = { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, value: value };
     this.gameRoom.sendToHost('vote', voteObj);
   }
 
@@ -361,7 +379,8 @@ function Game(gameRoom) {
     if (this.checkAllVotesIn(votes, this.votingAnswerIdx)) {
       this.gameRoom.cancelTimer();
       console.log('advance via completion')
-      this.maybeAdvanceVote();
+      var thisRoom = this;
+      setTimeout(function() {thisRoom.maybeAdvanceVote();}, 1000);
     }
   });
 
@@ -394,9 +413,9 @@ function Game(gameRoom) {
   this.maybeAdvanceVote = function () {
     this.votingAnswerIdx++;
     if (this.votingAnswerIdx < NUM_QUESTIONS) {
-      this.sendToEveryone('display voting', this.votingAnswerIdx);
+      this.gameRoom.sendToEveryone('display voting', this.votingAnswerIdx);
     } else { 
-      this.sendToEveryone('wait for scores', {});
+      this.gameRoom.sendToEveryone('wait for scores', {});
     }
   }
 
@@ -420,8 +439,9 @@ function Game(gameRoom) {
   // TODO CHANGE - have to handle YES, NO, IDK and SAME votes
   this.calculateRoundScores = function () {
     // calculate how many people voted yes / how many votes. 50% or less counts as no. If it's 0/0, it's no.
+    // "same" counts as a no vote
     // Show how many points each person has gotten
-    // Votes look like: { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, yes: yes };
+    // Votes look like: { votingAnswerIdx: this.votingAnswerIdx, playerID: playerID, value: value };
     var sumsPerPlayer = {};
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
@@ -439,8 +459,9 @@ function Game(gameRoom) {
       for (var j = 0; j < playerVotes.length; j++) {
         var vote = playerVotes[j];
         var targetPlayerSums = sumsPerPlayer[vote.playerID];
-        targetPlayerSums.yes[vote.votingAnswerIdx] += (vote.yes ? 1 : 0);
-        targetPlayerSums.total[vote.votingAnswerIdx] += 1;
+        targetPlayerSums.yes[vote.votingAnswerIdx] += (vote.value === 'yes' ? 1 : 0);
+        // don't count IDK votes in the total
+        targetPlayerSums.total[vote.votingAnswerIdx] += (vote.value !== 'idk' ? 1 : 0);
       }
       // clear votes when done
       votes[playerID] = [];
