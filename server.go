@@ -302,8 +302,16 @@ func main() {
 	startPeriodic()
 	go processCommands()
 
-	log.Println("Serving at localhost:8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	port := 8080
+	if len(os.Args) > 1 {
+		parsedPort, err := strconv.Atoi(os.Args[1])
+		if err == nil {
+			port = parsedPort
+		}
+	}
+	portStr := ":" + strconv.Itoa(port)
+	log.Println("Serving at localhost" + portStr)
+	log.Fatal(http.ListenAndServe(portStr, nil))
 }
 
 func startPeriodic() {
