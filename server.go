@@ -89,8 +89,8 @@ func main() {
 			log.Println("Null name joined room. It will redirect automatically")
 			return
 		}
-		log.Println("Room code: ", "chat_"+roomCode)
-		so.Join("chat_" + roomCode)
+		log.Println("Room code: ", roomCode)
+		so.Join(roomCode)
 		var playerID = postValues.Get("playerID")
 		log.Println("Player ID: ", playerID)
 		if "" == playerID {
@@ -134,11 +134,11 @@ func main() {
 
 		so.On("player ready", func() {
 			log.Println("New player ", playerInRoom.ID, " ready in room ", room.entryCode)
-			server.BroadcastTo("chat_"+roomCode, "update player list", room.listPlayers())
+			server.BroadcastTo(roomCode, "update player list", room.listPlayers())
 		})
 
 		so.On("to everyone", func(msgType string, data string) {
-			server.BroadcastTo("chat_"+roomCode, "to everyone", playerID, msgType, data)
+			server.BroadcastTo(roomCode, "to everyone", playerID, msgType, data)
 		})
 		so.On("to host", func(msgType string, data string) {
 			if len(room.members) > 0 {
@@ -160,14 +160,14 @@ func main() {
 			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
-			server.BroadcastTo("chat_"+roomCode, "sync var", varName, data)
+			server.BroadcastTo(roomCode, "sync var", varName, data)
 		})
 		so.On("update all sync vars", func(data string) {
 			// only let the host update all sync vars
 			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
-			server.BroadcastTo("chat_"+roomCode, "update all sync vars", data)
+			server.BroadcastTo(roomCode, "update all sync vars", data)
 		})
 		so.On("set script", func(newScript string) {
 			// only let the host change the script
@@ -176,7 +176,7 @@ func main() {
 			}
 			if room.scriptURL != newScript {
 				room.scriptURL = newScript
-				server.BroadcastTo("chat_"+roomCode, "set script", newScript)
+				server.BroadcastTo(roomCode, "set script", newScript)
 			}
 		})
 		so.On("set room mode", func(modeStr string) {
@@ -202,6 +202,7 @@ func main() {
 			}
 			if room.timerActive {
 				close(room.timerStop)
+				room.timerActive = false
 			}
 			secondsNum, err := strconv.Atoi(seconds)
 			if err != nil {
@@ -211,7 +212,6 @@ func main() {
 			room.timerActive = true
 			room.timerStop = make(chan struct{})
 			room.timerSecondsLeft = secondsNum
-			server.BroadcastTo("chat"+roomCode, "start timer", seconds)
 			ticker := time.NewTicker(time.Second)
 			go func() {
 				for {
@@ -220,12 +220,12 @@ func main() {
 						room.timerSecondsLeft--
 						if room.timerSecondsLeft < 1 {
 							log.Println("Timer ended in room ", room.entryCode)
-							server.BroadcastTo("chat_"+roomCode, "finish timer")
+							server.BroadcastTo(roomCode, "finish timer")
 							room.timerActive = false
 							ticker.Stop()
 							return
 						}
-						server.BroadcastTo("chat_"+roomCode, "sync timer", string(room.timerSecondsLeft))
+						server.BroadcastTo(roomCode, "sync timer", string(room.timerSecondsLeft))
 						break
 					case <-room.timerStop:
 						log.Println("Timer cancelled in room ", room.entryCode)
@@ -236,7 +236,7 @@ func main() {
 				}
 			}()
 
-			server.BroadcastTo("chat_"+roomCode, "start timer", string(seconds))
+			server.BroadcastTo(roomCode, "start timer", string(seconds))
 		})
 		// there is a message called "sync timer" that the server sends to clients to sync up their timers
 		// there is a message called "finish timer" that the server sends to clients when the timer ends
@@ -246,7 +246,7 @@ func main() {
 				return
 			}
 			close(room.timerStop)
-			server.BroadcastTo("chat_"+roomCode, "cancel timer")
+			server.BroadcastTo(roomCode, "cancel timer")
 		})
 
 		so.On("disconnection", func() {
@@ -278,6 +278,7 @@ func main() {
 		http.Redirect(w, r, "/"+randStr, 303)
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Connection from ", r.URL.String())
 		url := strings.Split(r.URL.String(), "?")[0]
 		if len(url) > 0 {
 			url = url[1:]
