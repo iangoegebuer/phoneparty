@@ -487,6 +487,10 @@ function Game(gameRoom) {
 
   this.setHandler('display scores', function() {
     this.setGameState(SCORE);
+    this.clearTimers();
+    if (this.isHost) {
+      this.gameRoom.cancelTimer();
+    }
     var scores = this.getSyncVar('player scores');
     var myScores = scores[this.playerID];
     $('#bigtext').text('Round ' + myScores.length + ' Scores');
