@@ -59,8 +59,6 @@ function gameBase(gameRoom) {
   
   // internal
   this.syncVarChanged = function(name, value) {
-    console.log(this);
-    console.log("syncing " + name + " to " + value)
     this.gameVariables[name] = value;
     // You can subscribe to a handler if you want
     this.event('', 'update sync var ' + name, value);

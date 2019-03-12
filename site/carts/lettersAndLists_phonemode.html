@@ -20,6 +20,10 @@
   </div>
 </div>
 <script>
+// prevent accidentally closing the window
+window.onbeforeunload = function () {
+  return  "Are you sure you want to exit the game?";
+}; 
 QUESTION_SETS = [
   [
     "Type of candy",
@@ -135,9 +139,11 @@ function Game(gameRoom) {
     $('#header').empty();
     $('#header').text(this.gameRoom.name);
 
-    if(this.isHost === false) {
+    if(!this.isHost) {
       $('#bigtext').text('Waiting on host...');
     } else {
+      // just in case, cancel the timer
+      this.gameRoom.cancelTimer();
       this.setSyncVar('player answers', {});
       this.setSyncVar('player votes', {});
       this.setSyncVar('player scores', {});
@@ -276,6 +282,7 @@ function Game(gameRoom) {
     this.setSyncVar('player answers', allAnswers);
   });
 
+  this.allowAutoAdvance = true
   this.startVoting = function () {
     this.votingAnswerIdx = 0;
     if (this.isHost) {
@@ -290,8 +297,8 @@ function Game(gameRoom) {
     });
     this.setHandler('finish timer', function(_, __) {
       timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', '0').css('width', '0%');
-      console.log('Advance the damn thing via timer?');
-      if (this.isHost) {
+      if (this.isHost && this.allowAutoAdvance) {
+        console.log('Advance via timer');
         this.maybeAdvanceVote();
       }
     });
@@ -346,8 +353,11 @@ function Game(gameRoom) {
       }
     }
     
-    // start a new timer, even if one is running
-    this.gameRoom.startTimer(30); // 30 seconds
+    if (this.isHost) {
+      // start a new timer, even if one is running
+      this.gameRoom.startTimer(30); // 30 seconds
+      this.allowAutoAdvance = true;
+    }
     var timerBar = $('#timerinner');
     timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', '100').css('width', '100%');
 
@@ -377,16 +387,15 @@ function Game(gameRoom) {
     votes[from].push(vote);
     this.setSyncVar('player votes', votes);
     if (this.checkAllVotesIn(votes, this.votingAnswerIdx)) {
-      this.gameRoom.cancelTimer();
       console.log('advance via completion')
+      this.allowAutoAdvance = false;
       var thisRoom = this;
       setTimeout(function() {thisRoom.maybeAdvanceVote();}, 1000);
     }
   });
 
-  // TODO TEST @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   this.checkAllVotesIn = function(votes, answerIdx) {
-    // TODO implement - check if every player has answered this idx for all players
+    // check if every player has answered this idx for all players including themselves
     for (var i = 0; i < this.playerList.length; i++) {
       var player1 = this.playerList[i];
       var player1Votes = votes[player1.ID];
@@ -410,11 +419,13 @@ function Game(gameRoom) {
     return true;
   }
 
+  // host only
   this.maybeAdvanceVote = function () {
     this.votingAnswerIdx++;
     if (this.votingAnswerIdx < NUM_QUESTIONS) {
       this.gameRoom.sendToEveryone('display voting', this.votingAnswerIdx);
     } else { 
+      this.gameRoom.cancelTimer();
       this.gameRoom.sendToEveryone('wait for scores', {});
     }
   }
@@ -488,9 +499,6 @@ function Game(gameRoom) {
   this.setHandler('display scores', function() {
     this.setGameState(SCORE);
     this.clearTimers();
-    if (this.isHost) {
-      this.gameRoom.cancelTimer();
-    }
     var scores = this.getSyncVar('player scores');
     var myScores = scores[this.playerID];
     $('#bigtext').text('Round ' + myScores.length + ' Scores');

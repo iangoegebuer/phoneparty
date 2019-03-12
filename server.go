@@ -34,6 +34,7 @@ type Room struct {
 	playerEntryMode  EntryMode
 	members          []*Player // the first player is always the owner
 	expires          time.Time
+	timerID          int
 	timerActive      bool
 	timerSecondsLeft int
 	timerStop        chan struct{}
@@ -209,32 +210,45 @@ func main() {
 				log.Println("Unable to parse timer time:", seconds)
 				return
 			}
+			room.timerID++
+			timerID := room.timerID
 			room.timerActive = true
-			room.timerStop = make(chan struct{})
+			timerStop := make(chan struct{})
+			room.timerStop = timerStop
 			room.timerSecondsLeft = secondsNum
 			ticker := time.NewTicker(time.Second)
 			go func() {
 				for {
 					select {
 					case <-ticker.C:
-						room.timerSecondsLeft--
-						if room.timerSecondsLeft < 1 {
-							log.Println("Timer ended in room ", room.entryCode)
-							server.BroadcastTo(roomCode, "finish timer")
-							room.timerActive = false
+						if timerID != room.timerID {
+							log.Println("Tried ticking timer with id ", timerID, " but room timer ID is ", room.timerID)
 							ticker.Stop()
 							return
 						}
-						server.BroadcastTo(roomCode, "sync timer", string(room.timerSecondsLeft))
+						room.timerSecondsLeft--
+						if room.timerSecondsLeft < 1 {
+							log.Println("Timer ", timerID, " ended in room ", room.entryCode)
+							server.BroadcastTo(roomCode, "finish timer")
+							room.timerActive = false
+							room.timerSecondsLeft = 0
+							ticker.Stop()
+							return
+						}
+						if room.timerSecondsLeft%5 == 1 {
+							server.BroadcastTo(roomCode, "sync timer", string(room.timerSecondsLeft))
+						}
 						break
-					case <-room.timerStop:
-						log.Println("Timer cancelled in room ", room.entryCode)
+					case <-timerStop:
+						log.Println("Timer ", timerID, " cancelled in room ", room.entryCode)
 						room.timerActive = false
+						room.timerSecondsLeft = 0
 						ticker.Stop()
 						return
 					}
 				}
 			}()
+			log.Println("Timer ", timerID, " started in room ", room.entryCode)
 
 			server.BroadcastTo(roomCode, "start timer", string(seconds))
 		})
@@ -245,6 +259,7 @@ func main() {
 			if playerInRoom.ID != room.members[0].ID || !room.timerActive {
 				return
 			}
+			log.Println("Explicitly cancel timer ", room.timerID)
 			close(room.timerStop)
 			server.BroadcastTo(roomCode, "cancel timer")
 		})
@@ -272,7 +287,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := &Room{entryCode: randStr, scriptURL: "site/carts/launchPad.html", playerEntryMode: OPEN, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
+		room := &Room{entryCode: randStr, scriptURL: "site/carts/launchPad.html", playerEntryMode: OPEN, timerID: 0, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)

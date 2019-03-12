@@ -38,7 +38,6 @@ function Room() {
     thisRoom.game.isAudience = info.isAudience;
   });
   this.socket.on('sync var', function(varName, data) {
-    console.log('received sync var msg ' + varName + ':' + data);
     data = JSON.parse(data);
     // only change the sync var for non-host
     if (thisRoom.game.isHost) {
@@ -88,22 +87,18 @@ function Room() {
     }
   });
   // these 3 are identical, since they contain who sent the message
-  this.socket.on('to everyone', function(from, msgType, msg){
-    console.log('received to everyone msg from ' + from + ': ' + msgType + ': ' + msg);
+  this.socket.on('to everyone', function(from, msgType, msg) {
     thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
-  this.socket.on('to host', function(from, msgType, msg){
-    console.log('received to host msg from ' + from + ': ' + msgType + ': ' + msg);
+  this.socket.on('to host', function(from, msgType, msg) {
     thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
-  this.socket.on('to player', function(from, msgType, msg){
-    console.log('received to player msg from ' + from + ': ' + msgType + ': ' + msg);
+  this.socket.on('to player', function(from, msgType, msg) {
     thisRoom.game.event(from, msgType, JSON.parse(msg));
   });
 
   this.socket.on('update player list', function(list) {
-    list = JSON.parse(list)
-    console.log(list);
+    list = JSON.parse(list);
     thisRoom.game.playerList = list;
     thisRoom.game.event('', 'update player list', list)
     if (thisRoom.game.isHost) {
@@ -112,6 +107,7 @@ function Room() {
   });
 
   this.socket.on('start timer', function(secondsStr) {
+    console.log('start timer message');
     var seconds = parseInt(secondsStr);
     if (thisRoom.timerActive) {
       if (null !== thisRoom.timerFunc) {
@@ -134,6 +130,7 @@ function Room() {
     }
   });
   this.socket.on('cancel timer', function() {
+    console.log('cancel timer message');
     if (thisRoom.timerActive) {
       if (null !== thisRoom.timerFunc) {
         clearInterval(thisRoom.timerFunc);
@@ -144,6 +141,7 @@ function Room() {
     }
   });
   this.socket.on('finish timer', function() {
+    console.log('finish timer message');
     if (thisRoom.timerActive) {
       if (null !== thisRoom.timerFunc) {
         clearInterval(thisRoom.timerFunc);

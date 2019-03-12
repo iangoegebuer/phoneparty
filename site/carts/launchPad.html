@@ -1,5 +1,8 @@
 <p>I AM THE LAUNCHPAD CART :)</p>
 <script>
+// remove an existing onbeforeunload handler, so no message is shown
+window.onbeforeunload = function () {};
+
 GAMES_LIST = [
   {path:'site/carts/launchPad.html',name:'Launch Pad'},
   {path:'site/carts/lettersAndLists.html', name:'Letters and Lists'},
