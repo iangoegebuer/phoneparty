@@ -1,4 +1,4 @@
-<!-- html elements can go up here -->
+<p id='playerlist'><b>Players:</b></p>
 <script>
 // remove an existing onbeforeunload handler, so no message is shown
 window.onbeforeunload = function () {};
@@ -23,80 +23,88 @@ function Game(gameRoom) {
   this.setHandler('set playerID',function(id) {
   console.log(id);
   $('#nameheader').text('Name: ' + this.gameRoom.name + ' (playerID: ' + this.gameRoom.playerID + ')');
-});
-*/
+  });
+  */
 
-console.log($('form'));
-
-
-
-$('form').submit(function(){
-
-  this.gameRoom.sendToEveryone("chat", gameRoom.name + ": " + $('#m').val());
-
-  $('#m').val('');
-  return false;
-});
-
-this.setup = function() {
-
-  this.form = $('<form>').prop({action:"javascript:void(0);"});
-  this.messageBox = $('<input>').prop({id:'m',autocomplete:"off",class:"form-control"});
-  this.messages = $('<ul>').prop({id:"messages"});
-  $('#game').append(this.messages);
-  //this.form.append(this.messages);
-  this.form.append($('<div>').prop({class:"form-group"}).append(
-    $('<div>').prop({class:"input-group mb-3"}).append(this.messageBox).append(
-      $('<div>').prop({class:"input-group-append"}).append(
-        $('<button>').prop({class:"btn btn-primary",type:"button"}).text('Send'))
-      )));
-
-      $('#footer').empty();
-      $('#footer').append($('<div>').prop({class:"flex-row w-100"}).append(this.form));
+  console.log($('form'));
 
 
-      thisGame = this;
+
+  $('form').submit(function(){
+
+    this.gameRoom.sendToEveryone("chat", gameRoom.name + ": " + $('#m').val());
+
+    $('#m').val('');
+    return false;
+  });
+
+  this.setup = function() {
+
+    this.form = $('<form>').prop({action:"javascript:void(0);"});
+    this.messageBox = $('<input>').prop({id:'m',autocomplete:"off",class:"form-control"});
+    this.messages = $('<ul>').prop({id:"messages"});
+    $('#game').append(this.messages);
+    //this.form.append(this.messages);
+    this.form.append($('<div>').prop({class:"form-group"}).append(
+      $('<div>').prop({class:"input-group mb-3"}).append(this.messageBox).append(
+        $('<div>').prop({class:"input-group-append"}).append(
+          $('<button>').prop({class:"btn btn-primary",type:"button"}).text('Send'))
+        )));
+
+    $('#footer').empty();
+    $('#footer').append($('<div>').prop({class:"flex-row w-100"}).append(this.form));
 
 
-      if(this.isHost) {
+    thisGame = this;
 
-        startButton = $('<button>').prop({type:"button",class:"btn btn-secondary"}).text("Start");
-        selectGroup = $('<select>').prop({class:"custom-select",id:"gameSelect"});
-        selectGroup.append($('<option>').prop({selected:''}).text("Choose game..."));
-        GAMES_LIST.forEach(function(element) {
-          selectGroup.append($('<option>').prop({value:element.path}).text(element.name));
-        });
 
-        this.selectGroup = selectGroup;
+    if(this.isHost) {
 
-        $('#footer').append(
-          $('<div>').prop({class:"flex-row"}).append(
-            $('<div>').prop({class:"input-group"}).append(this.selectGroup).append(
-              $('<div>').prop({class:'input-group-append'}).append(startButton)
-            ))
-          );
+      startButton = $('<button>').prop({type:"button",class:"btn btn-secondary"}).text("Start");
+      selectGroup = $('<select>').prop({class:"custom-select",id:"gameSelect"});
+      selectGroup.append($('<option>').prop({selected:''}).text("Choose game..."));
+      GAMES_LIST.forEach(function(element) {
+        selectGroup.append($('<option>').prop({value:element.path}).text(element.name));
+      });
 
-          startButton.click(function() {
-            console.log(thisGame.selectGroup.val());
-            thisGame.gameRoom.setScript(thisGame.selectGroup.val());
-          });
+      this.selectGroup = selectGroup;
 
-        }
+      $('#footer').append(
+        $('<div>').prop({class:"flex-row"}).append(
+          $('<div>').prop({class:"input-group"}).append(this.selectGroup).append(
+            $('<div>').prop({class:'input-group-append'}).append(startButton)
+          ))
+        );
 
-        this.form.submit(function(){
-
-          thisGame.gameRoom.sendToEveryone('chat', thisGame.gameRoom.name +
-          ": " + thisGame.messageBox.val());
-
-          thisGame.messageBox.val('');
-          return false;
-        });
-
-        $('#header').empty();
-        $('#header').text(this.gameRoom.name);
-
-        this.started = true;
-      }
+      startButton.click(function() {
+        console.log(thisGame.selectGroup.val());
+        thisGame.gameRoom.setScript(thisGame.selectGroup.val());
+      });
 
     }
+
+    this.form.submit(function(){
+
+      thisGame.gameRoom.sendToEveryone('chat', thisGame.gameRoom.name +
+      ": " + thisGame.messageBox.val());
+
+      thisGame.messageBox.val('');
+      return false;
+    });
+
+    $('#header').empty();
+    $('#header').text(this.gameRoom.name);
+
+    this.started = true;
+  }
+ 
+  this.setHandler('update player list', function (_,__) {
+    var players = "<b>Players:</b><br>";
+    for (var i = 0; i < this.playerList.length; i++) {
+      players += this.playerList[i].Name + '<br>';
+    }
+    $('#playerlist').html(players);
+  });
+}
+
 </script>

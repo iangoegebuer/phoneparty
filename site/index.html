@@ -2,18 +2,19 @@
 <html>
   <head>
     <title>Socket.IO chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="site/css/site.css" rel="stylesheet" type="text/css">
   </head>
-  <body>
+  <body class='h-100 p-2'>
     <p id="errormsg"></p>
     <p>Please enter a room code:</p>
-    <input type="text" id="roomcodetext"/>
+    <input type="text" id="roomcodetext" class='input-group mb-3'/>
     <p>Your name:</p>
-    <input type="text" id="nametext"/>
+    <input type="text" id="nametext" class='input-group mb-3'/>
     <br><br>
-    <input type="button" value="Join Room" onclick="gotoRoom()"/> or <input type="button" value="Create Room" onclick="createRoom()"/>
+    <input type="button" class='btn btn-primary' value="Join Room" onclick="gotoRoom()"/> or <input type="button" class='btn btn-primary' value="Create Room" onclick="createRoom()"/>
     <script src="site/jquery-1.11.1.js"></script>
     <script src="site/js/util.js"></script>
     <script>

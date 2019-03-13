@@ -113,7 +113,7 @@ function Game(gameRoom) {
       $('#votelist').hide();
       $('#scoretable').hide();
       $('#helptext').text(TUT_TEXT_1);
-      $('#timerbar').hide();
+      $('#timerbar').show();
     } else if (newState == VOTE) {
       $('#qlist').hide();
       $('#votelist').show();
@@ -203,19 +203,22 @@ function Game(gameRoom) {
 
   this.setHandler('start round countdown', function (_, __) {
     this.setGameState(WAITING_ROUND_START);
-    $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in 5');
+    $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + "\n\nStarting in 5");
     this.setHandler('tick timer', function(_, time) {
-      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting in ' + time);
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + "\n\nStarting in " + time);
     });
     this.setHandler('finish timer', function(_, __) {
-      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + '\nStarting...');
+      $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + "\n\nStarting...");
       if (this.isHost) {
         this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
-        this.gameRoom.sendToEveryone('start round', this.getSyncVar('currentList'));
+        var thisGame = this;
+        setTimeout(function () {
+          thisGame.gameRoom.sendToEveryone('start round', thisGame.getSyncVar('currentList'));
+        }, 1000);
       }
     });
     if (this.isHost) {
-      thisGame.gameRoom.startTimer(5);
+      this.gameRoom.startTimer(5);
     }
   });
 
@@ -233,12 +236,17 @@ function Game(gameRoom) {
 
     var seconds = 60;
     var letter = this.getSyncVar('currentLetter');
-    $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + seconds);
+    $('#bigtext').text('Letter: ' + letter);
     if (this.isHost) {
       this.gameRoom.startTimer(seconds);
     }
+    
+    var timerBar = $('#timerinner');
+    timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', '100').css('width', '100%');
     this.setHandler('tick timer', function(_, time) {
-      $('#bigtext').text('Letter: ' + letter + '\nTime left: ' + time);
+      $('#bigtext').text('Letter: ' + letter);
+      var value = (100 * time / 60).toFixed();
+      timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', value).css('width', value + '%');
     });
     this.setHandler('finish timer', function(_, __) {
       // TODO: Start scoring I have a whole voting system in mind
@@ -247,10 +255,10 @@ function Game(gameRoom) {
       // Step 3 people vote and decide if valid answer
       // Step 4 record score and repeat 1-4 for all answer sets
       // Step 5 display scores
-      $('#bigtext').text('Letter: ' + letter + '\nTime\'s up');
+      $('#bigtext').text('Letter: ' + letter);
+      timerBar.attr('aria-valuemin', '0').attr('aria-valuemax', '100').attr('aria-valuenow', '0').css('width', '0%');
       this.sendAnswers();
     });
-
   });
 
   this.sendAnswers = function () {

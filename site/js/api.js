@@ -107,20 +107,28 @@ function Room() {
   });
 
   this.socket.on('start timer', function(secondsStr) {
-    // TODO call the func
+    if (!thisRoom.game.isHost) {
+      thisRoom.startTimer(parseInt(secondsStr));
+    }
   });
   this.socket.on('sync timer', function(secondsStr) {
     // TODO is this good to go?
-    var seconds = parseInt(secondsStr);
-    if (Math.abs(this.timerLeft - seconds) > 1) {
-      thisRoom.timerLeft = seconds;
+    if (!thisRoom.game.isHost) {
+      var seconds = parseInt(secondsStr);
+      if (Math.abs(thisRoom.timerLeft - seconds) > 1) {
+        thisRoom.timerLeft = seconds;
+      }
     }
   });
   this.socket.on('cancel timer', function() {
-    // TODO call the func
+    if (!thisRoom.game.isHost) {
+      thisRoom.cancelTimer();
+    }
   });
   this.socket.on('finish timer', function() {
-    // TODO call the func
+    if (!thisRoom.game.isHost) {
+      thisRoom.finishTimer()
+    }
   });
 
   this.socket.on('error', function(code) {
@@ -149,64 +157,78 @@ Room.prototype.setSyncVar = function (varName, data) {
   this.socket.emit('sync var', varName, JSON.stringify(data));
 }
 
-// host only
+// host only. Gets called by socket on client
 Room.prototype.startTimer = function (seconds) {
-  if (!this.game.isHost) {
-    return;
-  }
-  console.log('start timer message');
-  var seconds = parseInt(secondsStr);
-  if (thisRoom.timerActive) {
-    if (null !== thisRoom.timerFunc) {
-      clearInterval(thisRoom.timerFunc);
+  console.log('start timer message , ' + seconds + ' secs');
+  if (this.timerActive) {
+    if (null !== this.timerFunc) {
+      clearInterval(this.timerFunc);
     }
   }
-  thisRoom.timerActive = true;
-  thisRoom.timerLeft = seconds;
-  thisRoom.timerFunc = setInterval(function () {
-    if (thisRoom.timerLeft > 0) {
-      thisRoom.timerLeft--;
-      thisRoom.game.event('', 'tick timer', thisRoom.timerLeft);
-    }
+  this.timerActive = true;
+  this.timerLeft = seconds;
+  var thisRoom = this;
+  this.timerFunc = setInterval(function () {
+    thisRoom.tickTimer();
   }, 1000);
-  // TODO IMPLEMENT
-  this.socket.emit('start timer', seconds.toString());
+  
+  if (this.game.isHost) {
+    this.socket.emit('start timer', seconds.toString());
+  }
 }
 
-// host only
+// host only. Gets called by socket on client
 Room.prototype.cancelTimer = function () {
-  if (!this.game.isHost) {
-    return;
-  }
   console.log('cancel timer message');
-  if (thisRoom.timerActive) {
-    if (null !== thisRoom.timerFunc) {
-      clearInterval(thisRoom.timerFunc);
-      thisRoom.timerFunc = null;
+  if (this.timerActive) {
+    if (null !== this.timerFunc) {
+      clearInterval(this.timerFunc);
+      this.timerFunc = null;
     }
-    thisRoom.timerActive = false;
-    thisRoom.game.event('', 'cancel timer', '');
+    this.timerActive = false;
+    this.game.event('', 'cancel timer', '');
   }
-  // TODO IMPLEMENT
-  this.socket.emit('cancel timer');
+  
+  if (this.game.isHost) {
+    this.socket.emit('cancel timer');
+  }
 }
 
-// DO NOT CALL THIS EXPLICITLY. Should only be called from API.js
+// DO NOT CALL THIS EXPLICITLY. Should only be called from API.js, by tickTimer on host and socket on client
 Room.prototype.finishTimer = function () {
   console.log('finish timer message');
-  if (thisRoom.timerActive) {
-    if (null !== thisRoom.timerFunc) {
-      clearInterval(thisRoom.timerFunc);
-      thisRoom.timerFunc = null;
-    }
-    thisRoom.timerActive = false;
-    thisRoom.game.event('', 'finish timer', '');
+  this.game.event('', 'finish timer', '');
+  
+  if (this.game.isHost) {
+    this.socket.emit('finish timer');
   }
 }
 
-// static timer func
-Room.TickTimerFunc = function () {
-
+// this gets called every second by timerFunc when a timer is running
+Room.prototype.tickTimer = function () {
+  if (!this.timerActive) {
+    console.log("Warning. Tried to tick timer when no timer is active.");
+    return;
+  }
+  if (this.timerLeft > 0) {
+    this.timerLeft--;
+    this.game.event('', 'tick timer', this.timerLeft);
+    if (this.game.isHost) {
+      this.socket.emit('sync timer', this.timerLeft.toString());
+    }
+  } else {
+    // timer has run out
+    if (this.timerActive) {
+      if (null !== this.timerFunc) {
+        clearInterval(this.timerFunc);
+        this.timerFunc = null;
+      }
+      this.timerActive = false;
+      if (this.game.isHost) {
+        this.finishTimer();
+      }
+    }
+  }
 }
 
 // host only

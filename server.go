@@ -197,34 +197,32 @@ func main() {
 			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
-			secondsNum, err := strconv.Atoi(seconds)
-			if err != nil {
-				log.Println("Unable to parse timer time:", seconds)
-				return
-			}
-			room.timerID++
-			timerID := room.timerID
-			room.timerActive = true
-			timerStop := make(chan struct{})
-			room.timerStop = timerStop
-			room.timerSecondsLeft = secondsNum
-			ticker := time.NewTicker(time.Second)
-
 			// todo remove
-			log.Println("Timer started in room ", room.entryCode)
+			log.Println("Timer started in room ", room.entryCode, " for seconds ", seconds)
 
-			server.BroadcastTo(roomCode, "start timer", string(seconds))
+			server.BroadcastTo(roomCode, "start timer", seconds)
 		})
-		// there is a message called "sync timer" that the server sends to clients to sync up their timers
-		// there is a message called "finish timer" that the server sends to clients when the timer ends
+
 		so.On("cancel timer", func() {
 			// only the host can cancel the timer
-			if playerInRoom.ID != room.members[0].ID || !room.timerActive {
+			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
-			log.Println("Explicitly cancel timer ", room.timerID)
-			close(room.timerStop)
+			// todo remove
+			log.Println("Timer cancelled in room ", room.entryCode)
+
 			server.BroadcastTo(roomCode, "cancel timer")
+		})
+
+		so.On("finish timer", func() {
+			// only the host can finish the timer
+			if playerInRoom.ID != room.members[0].ID {
+				return
+			}
+			// todo remove
+			log.Println("Timer finished in room ", room.entryCode)
+
+			server.BroadcastTo(roomCode, "finish timer")
 		})
 
 		so.On("disconnection", func() {
@@ -250,7 +248,7 @@ func main() {
 			randStr += letters[idx : idx+1]
 		}
 
-		room := &Room{entryCode: randStr, scriptURL: "site/carts/launchPad.html", playerEntryMode: OPEN, timerID: 0, timerActive: false, expires: time.Now().Add(time.Hour * 2)}
+		room := &Room{entryCode: randStr, scriptURL: "site/carts/launchPad.html", playerEntryMode: OPEN, expires: time.Now().Add(time.Hour * 2)}
 		rooms = append(rooms, room)
 		log.Println("Created room with code " + randStr)
 		http.Redirect(w, r, "/"+randStr, 303)
