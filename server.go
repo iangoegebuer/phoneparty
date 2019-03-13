@@ -29,15 +29,11 @@ const (
 
 // Room : Data structure for rooms
 type Room struct {
-	entryCode        string
-	scriptURL        string
-	playerEntryMode  EntryMode
-	members          []*Player // the first player is always the owner
-	expires          time.Time
-	timerID          int
-	timerActive      bool
-	timerSecondsLeft int
-	timerStop        chan struct{}
+	entryCode       string
+	scriptURL       string
+	playerEntryMode EntryMode
+	members         []*Player // the first player is always the owner
+	expires         time.Time
 }
 
 func (room Room) findPlayer(playerID string) (bool, *Player) {
@@ -201,10 +197,6 @@ func main() {
 			if playerInRoom.ID != room.members[0].ID {
 				return
 			}
-			if room.timerActive {
-				close(room.timerStop)
-				room.timerActive = false
-			}
 			secondsNum, err := strconv.Atoi(seconds)
 			if err != nil {
 				log.Println("Unable to parse timer time:", seconds)
@@ -217,43 +209,9 @@ func main() {
 			room.timerStop = timerStop
 			room.timerSecondsLeft = secondsNum
 			ticker := time.NewTicker(time.Second)
-			go func() {
-				for {
-					select {
-					case <-ticker.C:
-						if timerID != room.timerID {
-							log.Println("Tried ticking timer with id ", timerID, " but room timer ID is ", room.timerID)
-							ticker.Stop()
-							return
-						}
-						if !room.timerActive {
-							// this often happens when a timer gets
-							log.Println("Ticked inactive timer, ignoring. ID ", timerID)
-							return
-						}
-						room.timerSecondsLeft--
-						if room.timerSecondsLeft < 1 {
-							log.Println("Timer ", timerID, " ended in room ", room.entryCode)
-							server.BroadcastTo(roomCode, "finish timer")
-							room.timerActive = false
-							room.timerSecondsLeft = 0
-							ticker.Stop()
-							return
-						}
-						if room.timerSecondsLeft%5 == 1 {
-							server.BroadcastTo(roomCode, "sync timer", string(room.timerSecondsLeft))
-						}
-						break
-					case <-timerStop:
-						log.Println("Timer ", timerID, " cancelled in room ", room.entryCode)
-						room.timerActive = false
-						room.timerSecondsLeft = 0
-						ticker.Stop()
-						return
-					}
-				}
-			}()
-			log.Println("Timer ", timerID, " started in room ", room.entryCode)
+
+			// todo remove
+			log.Println("Timer started in room ", room.entryCode)
 
 			server.BroadcastTo(roomCode, "start timer", string(seconds))
 		})

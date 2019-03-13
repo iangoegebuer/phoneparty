@@ -107,49 +107,20 @@ function Room() {
   });
 
   this.socket.on('start timer', function(secondsStr) {
-    console.log('start timer message');
-    var seconds = parseInt(secondsStr);
-    if (thisRoom.timerActive) {
-      if (null !== thisRoom.timerFunc) {
-        clearInterval(thisRoom.timerFunc);
-      }
-    }
-    thisRoom.timerActive = true;
-    thisRoom.timerLeft = seconds;
-    thisRoom.timerFunc = setInterval(function () {
-      if (thisRoom.timerLeft > 0) {
-        thisRoom.timerLeft--;
-        thisRoom.game.event('', 'tick timer', thisRoom.timerLeft);
-      }
-    }, 1000);
+    // TODO call the func
   });
   this.socket.on('sync timer', function(secondsStr) {
+    // TODO is this good to go?
     var seconds = parseInt(secondsStr);
     if (Math.abs(this.timerLeft - seconds) > 1) {
       thisRoom.timerLeft = seconds;
     }
   });
   this.socket.on('cancel timer', function() {
-    console.log('cancel timer message');
-    if (thisRoom.timerActive) {
-      if (null !== thisRoom.timerFunc) {
-        clearInterval(thisRoom.timerFunc);
-        thisRoom.timerFunc = null;
-      }
-      thisRoom.timerActive = false;
-      thisRoom.game.event('', 'cancel timer', '');
-    }
+    // TODO call the func
   });
   this.socket.on('finish timer', function() {
-    console.log('finish timer message');
-    if (thisRoom.timerActive) {
-      if (null !== thisRoom.timerFunc) {
-        clearInterval(thisRoom.timerFunc);
-        thisRoom.timerFunc = null;
-      }
-      thisRoom.timerActive = false;
-      thisRoom.game.event('', 'finish timer', '');
-    }
+    // TODO call the func
   });
 
   this.socket.on('error', function(code) {
@@ -180,12 +151,62 @@ Room.prototype.setSyncVar = function (varName, data) {
 
 // host only
 Room.prototype.startTimer = function (seconds) {
+  if (!this.game.isHost) {
+    return;
+  }
+  console.log('start timer message');
+  var seconds = parseInt(secondsStr);
+  if (thisRoom.timerActive) {
+    if (null !== thisRoom.timerFunc) {
+      clearInterval(thisRoom.timerFunc);
+    }
+  }
+  thisRoom.timerActive = true;
+  thisRoom.timerLeft = seconds;
+  thisRoom.timerFunc = setInterval(function () {
+    if (thisRoom.timerLeft > 0) {
+      thisRoom.timerLeft--;
+      thisRoom.game.event('', 'tick timer', thisRoom.timerLeft);
+    }
+  }, 1000);
+  // TODO IMPLEMENT
   this.socket.emit('start timer', seconds.toString());
 }
 
 // host only
 Room.prototype.cancelTimer = function () {
+  if (!this.game.isHost) {
+    return;
+  }
+  console.log('cancel timer message');
+  if (thisRoom.timerActive) {
+    if (null !== thisRoom.timerFunc) {
+      clearInterval(thisRoom.timerFunc);
+      thisRoom.timerFunc = null;
+    }
+    thisRoom.timerActive = false;
+    thisRoom.game.event('', 'cancel timer', '');
+  }
+  // TODO IMPLEMENT
   this.socket.emit('cancel timer');
+}
+
+// DO NOT CALL THIS EXPLICITLY. Should only be called from API.js
+Room.prototype.finishTimer = function () {
+  console.log('finish timer message');
+  if (thisRoom.timerActive) {
+    if (null !== thisRoom.timerFunc) {
+      clearInterval(thisRoom.timerFunc);
+      thisRoom.timerFunc = null;
+    }
+    thisRoom.timerActive = false;
+    thisRoom.game.event('', 'finish timer', '');
+  }
+}
+
+// static timer func
+Room.TickTimerFunc = function () {
+
 }
 
 // host only
