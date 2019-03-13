@@ -1,6 +1,6 @@
 <div id='gamecontainer' class='align-items-middle'>
-  <h1 id='bigtext' class='text-center align-middle align-self-center'></h1>
   <h4 id='helptext' class='text-center align-middle align-self-center'></h4>
+  <h1 id='bigtext' class='text-center align-middle align-self-center'></h1>
   <div id='timerbar' class='progress'>
     <div id='timerinner' class='progress-bar' role='progressbar' style='width: 25%' aria-valuenow='25' aria-valuemin='0' aria-valuemax='100'></div>
   </div>
@@ -355,6 +355,7 @@ function Game(gameRoom) {
     
     if (this.isHost) {
       // start a new timer, even if one is running
+      console.log("Starting new timer for answer idx " + this.votingAnswerIdx);
       this.gameRoom.startTimer(30); // 30 seconds
       this.allowAutoAdvance = true;
     }
@@ -380,8 +381,7 @@ function Game(gameRoom) {
 
   // host only
   this.setHandler('vote', function(from, vote) {
-    console.log("Received vote")
-    console.log(vote);
+    console.log("Received vote from " + from)
     
     var votes = this.getSyncVar('player votes');
     votes[from].push(vote);
@@ -416,15 +416,19 @@ function Game(gameRoom) {
         }
       }
     }
+    console.log("all votes in for index " + answerIdx)
     return true;
   }
 
   // host only
   this.maybeAdvanceVote = function () {
+    console.log("Advancing vote");
     this.votingAnswerIdx++;
     if (this.votingAnswerIdx < NUM_QUESTIONS) {
+      console.log("New vote answer idx " + this.votingAnswerIdx);
       this.gameRoom.sendToEveryone('display voting', this.votingAnswerIdx);
     } else { 
+      console.log("Cancelling timer and waiting until scores");
       this.gameRoom.cancelTimer();
       this.gameRoom.sendToEveryone('wait for scores', {});
     }

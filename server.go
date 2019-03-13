@@ -226,6 +226,11 @@ func main() {
 							ticker.Stop()
 							return
 						}
+						if !room.timerActive {
+							// this often happens when a timer gets
+							log.Println("Ticked inactive timer, ignoring. ID ", timerID)
+							return
+						}
 						room.timerSecondsLeft--
 						if room.timerSecondsLeft < 1 {
 							log.Println("Timer ", timerID, " ended in room ", room.entryCode)
