@@ -24,59 +24,68 @@
 window.onbeforeunload = function () {
   return  "Are you sure you want to exit the game?";
 }; 
-QUESTION_SETS = [
-  [
-    "Type of candy",
-    "Car manufacturer",
-    "Musical instrument",
-    "Living politician",
-    "Vegetable",
-    "Article of clothing",
-  ],
-  [
-    "Dead politician",
-    "Grocery store chain",
-    "Video game",
-    "Sport",
-    "Gardening tool",
-    "Disney character",
-  ],
-  [
-    "Home appliance",
-    "Zoo animal",
-    "Legume",
-    "Animated movie",
-    "Color",
-    "Actress",
-  ],
-  [
-    "State",
-    "Live-action movie",
-    "Bug",
-    "Cooked dish",
-    "Power tool",
-    "TV show",
-  ],
-  [
-    "Career",
-    "Country",
-    "Dog breed",
-    "Song name",
-    "Programming language",
-    "Cookware",
-  ],
-  [
-    "Berry",
-    "Book title",
-    "Super Smash Bros. character",
-    "Actor",
-    "President",
-    "Movie adaptation",
-  ]
-]
+QUESTIONS = [
+  "Type of candy",
+  "Car manufacturer",
+  "Musical instrument",
+  "Living politician",
+  "Vegetable",
+  "Article of clothing",
+  "Dead politician",
+  "Grocery store chain",
+  "Video game",
+  "Sport",
+  "Gardening tool",
+  "Disney character",
+  "Home appliance",
+  "Zoo animal",
+  "Legume",
+  "Animated movie",
+  "Color",
+  "Actress (female)",
+  "Name of a state",
+  "Live-action movie",
+  "Bug",
+  "Cooked dish",
+  "Power tool",
+  "TV show",
+  "Career",
+  "Name of a country",
+  "Dog breed",
+  "Song name",
+  "Programming language",
+  "Cookware",
+  "Berry",
+  "Book title",
+  "Super Smash Bros. character",
+  "Actor (male)",
+  "President",
+  "Movie adaptation",
+  "Name of a city",
+  "Smoothie ingredient",
+  "Car model",
+  "Food brand",
+  "Pop star",
+  "Famous criminal",
+];
 var NUM_QUESTIONS = 6;
 var TUT_TEXT_1 = 'Enter names of the given category, starting with the letter above.\n\n"A", "An", and "The" do not count; you can for example use "Matrix, The" for M. Proper names can be given last name first if desired, such as "Obama, Barack".';
 var TUT_TEXT_2 = 'Vote "yes" on entries that are valid responses to the question, and start with the correct letter.';
+
+function randomQuestionSet() {
+  var result = [];
+  // 100 is an arbitrary limit, just preventing an infinite loop. It hopefully is only 6 or 7
+  for (var i = 0; i < 100; i++) {
+    var randomIdx = Math.floor(Math.random() * QUESTIONS.length);
+    if (!result.includes(randomIdx)) {
+      result.push(randomIdx);
+    }
+    if (result.length >= NUM_QUESTIONS) {
+      break;
+    }
+  }
+  return result;
+}
 
 function Game(gameRoom) {
   console.log(gameRoom);
@@ -132,7 +141,7 @@ function Game(gameRoom) {
 
   this.setup = function() {
     this.setGameState(WAITING);
-    this.questionSetIdx = 0;
+    this.questionSet = [];
     this.votingAnswerIdx = 0;
 
     $('#footer').empty();
@@ -210,7 +219,7 @@ function Game(gameRoom) {
     this.setHandler('finish timer', function(_, __) {
       $('#bigtext').text("Letter: " + this.getSyncVar('currentLetter') + "\n\nStarting...");
       if (this.isHost) {
-        this.setSyncVar('currentList', Math.floor(Math.random() * QUESTION_SETS.length));
+        this.setSyncVar('currentList', randomQuestionSet());
         var thisGame = this;
         setTimeout(function () {
           thisGame.gameRoom.sendToEveryone('start round', thisGame.getSyncVar('currentList'));
@@ -222,14 +231,14 @@ function Game(gameRoom) {
     }
   });
 
-  this.setHandler('start round', function (from, index) {
-    console.log("starting round with index " + index)
-    this.questionSetIdx = index;
+  this.setHandler('start round', function (from, questionSet) {
+    console.log("starting round with index " + questionSet)
+    this.questionSet = questionSet;
     this.setGameState(LIST);
     var list = $('#qlist');
     list.empty();
     for (var i = 0; i < NUM_QUESTIONS; i++) {
-      list.append($('<label>').text("" + (i + 1) + ". " + QUESTION_SETS[this.questionSetIdx][i]).prop({for:'a'+i}));
+      list.append($('<label>').text("" + (i + 1) + ". " + QUESTIONS[this.questionSet[i]]).prop({for:'a'+i}));
       list.append($('<div>').prop({class:"input-group mb-3"}).append(
         $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
@@ -318,7 +327,7 @@ function Game(gameRoom) {
       this.votingAnswerIdx = answerIdx;
     }
     this.setGameState(VOTE);
-    $('#bigtext').text('Letter: ' + this.getSyncVar('currentLetter') + '\n' + (this.votingAnswerIdx + 1) + ". " + QUESTION_SETS[this.questionSetIdx][this.votingAnswerIdx]);
+    $('#bigtext').text('Letter: ' + this.getSyncVar('currentLetter') + '\n' + (this.votingAnswerIdx + 1) + ". " + QUESTIONS[this.questionSet[this.votingAnswerIdx]]);
     $('#votelist').empty();
     var answers = this.getSyncVar('player answers');
     for (var i = 0; i < this.playerList.length; i++) {

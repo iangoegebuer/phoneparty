@@ -313,8 +313,12 @@ func periodic() {
 	// scan through rooms and remove expired ones
 	now := time.Now()
 	for i := 0; i < len(rooms); i++ {
-		if rooms[i].expires.Before(now) {
-			log.Println("Removing expired room " + rooms[i].entryCode)
+		room := rooms[i]
+		if room.expires.Before(now) {
+			log.Println("Removing expired room ", room.entryCode)
+			for j := 0; j < len(room.members); j++ {
+				room.members[j].socket.Disconnect()
+			}
 			rooms = append(rooms[:i], rooms[i+1:]...)
 			i--
 		}
