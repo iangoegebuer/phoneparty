@@ -11,6 +11,7 @@ function Room() {
   this.scriptURL = '';
 
   // room vars
+  var urlVars = getURLVars();
   this.room = location.pathname.replace('/','');
   this.name = localStorage.getItem("name");
   console.log(this.name);
@@ -69,6 +70,10 @@ function Room() {
       thisRoom.setGame(new Game(thisRoom));
       thisRoom.game.copyFrom(oldGame);
       thisRoom.scriptURL = newScriptURL;
+      if (urlVars['test'] === 'true') {
+        console.log('Test mode activated.')
+        thisRoom.game.testing = true;
+      }
       thisRoom.game.setup();
       thisRoom.socket.emit('player ready')
     });

@@ -243,7 +243,7 @@ function Game(gameRoom) {
         $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
 
-    var seconds = 60;
+    var seconds = this.testing ? 5 : 60;
     var letter = this.getSyncVar('currentLetter');
     $('#bigtext').text('Letter: ' + letter);
     if (this.isHost) {
@@ -332,6 +332,11 @@ function Game(gameRoom) {
     var answers = this.getSyncVar('player answers');
     for (var i = 0; i < this.playerList.length; i++) {
       var playerID = this.playerList[i].ID;
+      // protect against an error I saw but cannot repro
+      if (!answers[playerID] || typeof answers[playerID]['a' + this.votingAnswerIdx] !== 'string') {
+        console.log('Failed to get answers from ' + playerID);
+        continue;
+      }
       var playerAnswer = answers[playerID]['a' + this.votingAnswerIdx].trim();
       if (playerAnswer === '') {
         // send a no vote and skip this one
@@ -346,6 +351,10 @@ function Game(gameRoom) {
           continue;
         }
         var playerIDOther = this.playerList[j].ID;
+        // protect against an error I saw but cannot repro
+        if (!answers[playerIDOther] || typeof answers[playerIDOther]['a' + this.votingAnswerIdx] !== 'string') {
+          continue;
+        }
         var playerAnswerOther = answers[playerIDOther]['a' + this.votingAnswerIdx].trim();
         if (playerAnswer === playerAnswerOther) {
           foundDuplicate = true;
@@ -373,7 +382,7 @@ function Game(gameRoom) {
     if (this.isHost) {
       // start a new timer, even if one is running
       console.log("Starting new timer for answer idx " + this.votingAnswerIdx);
-      this.gameRoom.startTimer(30); // 30 seconds
+      this.gameRoom.startTimer(this.testing ? 2 : 30); // 30 seconds
       this.allowAutoAdvance = true;
     }
     var timerBar = $('#timerinner');
@@ -581,5 +590,43 @@ function Game(gameRoom) {
     this.setHandler('finish timer', function(_, __) {
     });
   }
+
+
+
+  ////////////////////////////////////////////////////
+  // Testing-related code down here
+  ////////////////////////////////////////////////////
+
+  this.setHandler('test start round', function() {
+    for (var i = 0; i < NUM_QUESTIONS; i++) {
+      // auto-fill some of the questions
+      var sample = Math.random();
+      if (sample < .5) {
+        $('#a' + i).val(Math.random().toString()); // random
+      } else if (sample < .8) {
+        $('#a' + i).val(i); // duplicate maybe
+      }
+    }
+  });
+  this.setHandler('test display scores', function () {
+    if (this.isHost) {
+      setTimeout(function() {$('#nextroundbutton').click()}, 3000);
+    }
+  });
+  this.setHandler('test display voting', function(_, answerIdx) {
+    var thisGame = this;
+    setTimeout(function () {
+      for (var i = 0; i < thisGame.playerList.length; i++) {
+        var playerID = thisGame.playerList[i].ID;
+        var voteClone = $('#vote_' + playerID);
+        voteClone.children().eq(Math.floor(Math.random() * 4)).click();
+      }
+    }, 250);
+  });
+
+  
+  ////////////////////////////////////////////////////
+  // End of testing code
+  ////////////////////////////////////////////////////
 }
 </script>

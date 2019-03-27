@@ -19,12 +19,18 @@ function gameBase(gameRoom) {
     // Override this for setup functionality
   }
   this.started = false;
+  // Used for testing
+  this.testing = false;
 
   // SPECIAL HANDLERS ARE
   // sync, update sync var VARNAME, update player list, start timer, tick timer, cancel timer, finish timer
+  // a handler starting with 'test ' will also be called if in testing mode
   this.event = function(from, type, info) {
     if (this.handlers.hasOwnProperty(type)) {
       this.handlers[type].call(this, from, info);
+    }
+    if (this.testing && this.handlers.hasOwnProperty('test ' + type)) {
+      this.handlers['test ' + type].call(this, from, info)
     }
   }
 
