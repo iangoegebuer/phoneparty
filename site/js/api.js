@@ -70,9 +70,9 @@ function Room() {
       thisRoom.setGame(new Game(thisRoom));
       thisRoom.game.copyFrom(oldGame);
       thisRoom.scriptURL = newScriptURL;
-      if (urlVars['test'] === 'true') {
-        console.log('Test mode activated.')
-        thisRoom.game.testing = true;
+      if (urlVars['test']) {
+        console.log('Test mode activated: ' + urlVars['test']);
+        thisRoom.game.test = urlVars['test'];
       }
       thisRoom.game.setup();
       thisRoom.socket.emit('player ready')

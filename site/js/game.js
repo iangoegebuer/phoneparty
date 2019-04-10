@@ -20,7 +20,7 @@ function gameBase(gameRoom) {
   }
   this.started = false;
   // Used for testing
-  this.testing = false;
+  this.test = null;
 
   // SPECIAL HANDLERS ARE
   // sync, update sync var VARNAME, update player list, start timer, tick timer, cancel timer, finish timer
@@ -29,7 +29,7 @@ function gameBase(gameRoom) {
     if (this.handlers.hasOwnProperty(type)) {
       this.handlers[type].call(this, from, info);
     }
-    if (this.testing && this.handlers.hasOwnProperty('test ' + type)) {
+    if (this.test && this.handlers.hasOwnProperty('test ' + type)) {
       this.handlers['test ' + type].call(this, from, info)
     }
   }

@@ -143,6 +143,7 @@ function Game(gameRoom) {
     this.setGameState(WAITING);
     this.questionSet = [];
     this.votingAnswerIdx = 0;
+    this.receivedAnswersFrom = [];
 
     $('#footer').empty();
     $('#header').empty();
@@ -243,7 +244,7 @@ function Game(gameRoom) {
         $('<input>').prop({ id: "a" + i, autocomplete: 'off', class: "form-control answers", prompt: i.toString(), type: "text"})));
     }
 
-    var seconds = this.testing ? 5 : 60;
+    var seconds = this.test ? 5 : 60;
     var letter = this.getSyncVar('currentLetter');
     $('#bigtext').text('Letter: ' + letter);
     if (this.isHost) {
@@ -297,6 +298,9 @@ function Game(gameRoom) {
     console.log("New all answers");
     console.log(allAnswers);
     this.setSyncVar('player answers', allAnswers);
+    if (this.receivedAnswersFrom.indexOf(from) === -1) {
+      this.receivedAnswersFrom.push(from);
+    }
   });
 
   this.allowAutoAdvance = true
@@ -382,7 +386,7 @@ function Game(gameRoom) {
     if (this.isHost) {
       // start a new timer, even if one is running
       console.log("Starting new timer for answer idx " + this.votingAnswerIdx);
-      this.gameRoom.startTimer(this.testing ? 2 : 30); // 30 seconds
+      this.gameRoom.startTimer(this.test ? 2 : 30); // 30 seconds
       this.allowAutoAdvance = true;
     }
     var timerBar = $('#timerinner');
@@ -424,9 +428,22 @@ function Game(gameRoom) {
     // check if every player has answered this idx for all players including themselves
     for (var i = 0; i < this.playerList.length; i++) {
       var player1 = this.playerList[i];
+      // If a player disconnects, they will not have submitted answers, so don't wait for them to vote
+      console.log("Index of player1 " + player1.ID + " in recvd answers! " + this.receivedAnswersFrom.indexOf(player1.ID));
+      if (this.receivedAnswersFrom.indexOf(player1.ID) === -1) {
+        console.log("player1 did not submit any answers: " + player1.ID);
+        continue;
+      }
+
       var player1Votes = votes[player1.ID];
       for (var j = 0; j < this.playerList.length; j++) {
         var player2 = this.playerList[j];
+
+        console.log("Index of player2 " + player2.ID + " in recvd answers! " + this.receivedAnswersFrom.indexOf(player2.ID));
+        if (this.receivedAnswersFrom.indexOf(player2.ID) === -1) {
+          console.log("player2 did not submit any answers: " + player2.ID);
+          continue;
+        }
         // check if player1 voted on player2's answer for this question
         var didVote = false;
         for (var voteIdx = 0; voteIdx < player1Votes.length; voteIdx++) {
@@ -561,7 +578,7 @@ function Game(gameRoom) {
     if (this.isHost) {
       $('#nextroundbutton').show();
       var thisGame = this;
-      // TODO check if this gets overwritten every time
+      // TODO check if this gets overwritten every time. It seems to work
       $('#nextroundbutton').click(function() {
         thisGame.setGameState(WAITING);
         console.log("Anoth round");
@@ -575,6 +592,7 @@ function Game(gameRoom) {
         }
         thisGame.setSyncVar('player answers', answers);
         thisGame.setSyncVar('player votes', votes);
+        thisGame.receivedAnswersFrom = [];
 
         var letter = randomPick("ABCDEFGHIJKLMNOPRSTUVWY"); // exclude z, x, q
         thisGame.setSyncVar('currentLetter', letter);
