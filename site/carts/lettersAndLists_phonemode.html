@@ -429,7 +429,6 @@ function Game(gameRoom) {
     for (var i = 0; i < this.playerList.length; i++) {
       var player1 = this.playerList[i];
       // If a player disconnects, they will not have submitted answers, so don't wait for them to vote
-      console.log("Index of player1 " + player1.ID + " in recvd answers! " + this.receivedAnswersFrom.indexOf(player1.ID));
       if (this.receivedAnswersFrom.indexOf(player1.ID) === -1) {
         console.log("player1 did not submit any answers: " + player1.ID);
         continue;
@@ -439,7 +438,6 @@ function Game(gameRoom) {
       for (var j = 0; j < this.playerList.length; j++) {
         var player2 = this.playerList[j];
 
-        console.log("Index of player2 " + player2.ID + " in recvd answers! " + this.receivedAnswersFrom.indexOf(player2.ID));
         if (this.receivedAnswersFrom.indexOf(player2.ID) === -1) {
           console.log("player2 did not submit any answers: " + player2.ID);
           continue;

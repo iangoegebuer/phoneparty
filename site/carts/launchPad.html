@@ -7,6 +7,8 @@ GAMES_LIST = [
   //{path:'site/carts/launchPad.html',name:'Launch Pad'},
   {path:'site/carts/lettersAndLists.html', name:'Letters and Lists'},
   {path:'site/carts/lettersAndLists_phonemode.html', name:'Letters and Lists - Phone Mode'},
+  {path:'GITHUB', name:'GitHub file'},
+  {path:'URL', name:'Custom URL'},
   // TODO: let you specify your own cart
   // TODO: maybe also remember the last used cart
   // Confirmed that both of the following work:
@@ -52,7 +54,7 @@ function Game(gameRoom) {
     this.form.append($('<div>').prop({class:"form-group"}).append(
       $('<div>').prop({class:"input-group mb-3"}).append(this.messageBox).append(
         $('<div>').prop({class:"input-group-append"}).append(
-          $('<button>').prop({class:"btn btn-primary",type:"button"}).text('Send'))
+          $('<button>').prop({class:"btn btn-primary",type:"submit"}).text('Send'))
         )));
 
     $('#footer').empty();
@@ -64,11 +66,45 @@ function Game(gameRoom) {
 
     if(this.isHost) {
 
-      startButton = $('<button>').prop({type:"button",class:"btn btn-secondary"}).text("Start");
-      selectGroup = $('<select>').prop({class:"custom-select",id:"gameSelect"});
+      var startButton = $('<button>').prop({type:"button",class:"btn btn-secondary"}).text("Start");
+      var selectGroup = $('<select>').prop({class:"custom-select",id:"gameSelect"});
       selectGroup.append($('<option>').prop({selected:''}).text("Choose game..."));
       GAMES_LIST.forEach(function(element) {
         selectGroup.append($('<option>').prop({value:element.path}).text(element.name));
+      });
+      // TODO create input boxes for supplying your own repo
+      // TODO create a hook to show or hide them 
+      var gitRepoHelp = $('<label>').prop({for:'gitrepo'}).text('Enter the git repo as follows: Username::Repository Name::(optional)Version or commit or branch::Filename.js').css('display','none');
+      var gitRepoInput = $('<input>').prop({id:'gitrepo', type:'text', class:'form-control'}).css('display','none');
+      var customUrlHelp = $('<label>').prop({for:'customurl'}).text('Enter URL:').css('display','none');
+      var customUrlInput = $('<input>').prop({id:'customurl', type:'text', class:'form-control'}).css('display','none');
+      selectGroup.change(function() {
+        console.log('CHANGE EVENT val:');
+        console.log(selectGroup.val());
+        var showGH = selectGroup.val() === "GITHUB";
+        var showCustom = selectGroup.val() === "URL";
+        if (showGH) {
+          gitRepoHelp.show();
+          gitRepoInput.show();
+          customUrlHelp.hide();
+          customUrlInput.hide();
+        } else if (showCustom) {
+          gitRepoHelp.hide();
+          gitRepoInput.hide();
+          customUrlHelp.show();
+          customUrlInput.show();
+        } else {
+          gitRepoHelp.hide();
+          gitRepoInput.hide();
+          customUrlHelp.hide();
+          customUrlInput.hide();
+        }
+      });
+      gitRepoInput.change(function () {
+        console.log("Git repo text changed " + gitRepoInput.val())
+      });
+      customUrlInput.change(function () {
+        console.log("Custom URL text changed " + customUrlInput.val())
       });
 
       this.selectGroup = selectGroup;
@@ -77,12 +113,24 @@ function Game(gameRoom) {
         $('<div>').prop({class:"flex-row"}).append(
           $('<div>').prop({class:"input-group"}).append(this.selectGroup).append(
             $('<div>').prop({class:'input-group-append'}).append(startButton)
-          ))
-        );
+          )
+        ).append(
+          $('<div>').prop({class:'form-group'}).append(gitRepoHelp).append(gitRepoInput).append(customUrlInput)
+        )
+      );
 
       startButton.click(function() {
-        console.log(thisGame.selectGroup.val());
-        thisGame.gameRoom.setScript(thisGame.selectGroup.val());
+        console.log("Clicked start button. Select group value: " + selectGroup.val());
+        var useGH = selectGroup.val() === "GITHUB";
+        var useCustom = selectGroup.val() === "URL";
+        if (useGH) {
+          // TODO parse github stuff
+          console.log("Github repo " + gitRepoInput.val());
+        } else if (useCustom) {
+          thisGame.gameRoom.setScript(customUrlInput.val())
+        } else {
+          thisGame.gameRoom.setScript(selectGroup.val());
+        }
       });
 
     }
