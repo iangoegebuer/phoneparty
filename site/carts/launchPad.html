@@ -88,11 +88,21 @@ function Game(gameRoom) {
           gitRepoInput.show();
           customUrlHelp.hide();
           customUrlInput.hide();
+
+          var existingURL = localStorage.getItem("githuburl");
+          if (existingURL) {
+            gitRepoInput.val(existingURL);
+          }
         } else if (showCustom) {
           gitRepoHelp.hide();
           gitRepoInput.hide();
           customUrlHelp.show();
           customUrlInput.show();
+          
+          var existingURL = localStorage.getItem("customurl");
+          if (existingURL) {
+            gitRepoInput.val(existingURL);
+          }
         } else {
           gitRepoHelp.hide();
           gitRepoInput.hide();
@@ -124,9 +134,10 @@ function Game(gameRoom) {
         var useGH = selectGroup.val() === "GITHUB";
         var useCustom = selectGroup.val() === "URL";
         if (useGH) {
-          // TODO parse github stuff
-          console.log("Github repo " + gitRepoInput.val());
+          localStorage.setItem("githuburl", gitRepoInput.val());
+          thisGame.gameRoom.setScript(createGithubURL(gitRepoInput.val()));
         } else if (useCustom) {
+          localStorage.setItem("customurl", customUrlInput.val());
           thisGame.gameRoom.setScript(customUrlInput.val())
         } else {
           thisGame.gameRoom.setScript(selectGroup.val());
